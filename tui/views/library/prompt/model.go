@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 )
@@ -117,9 +118,10 @@ func (m *prompt) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, baseKeys.Tab):
 			m.cycleFocus(msg)
 			return m, nil
-		case key.Matches(msg, baseKeys.Cancel):
+		case key.Matches(msg, baseKeys.Escape):
+			log.Debug("(*prompt).Update: closing prompt")
 			return m, m.close
-		case key.Matches(msg, baseKeys.Submit):
+		case key.Matches(msg, baseKeys.Enter):
 			return m, m.submit
 		case key.Matches(msg, passwordKeys.ShowPassword):
 			m.showHidePassword()

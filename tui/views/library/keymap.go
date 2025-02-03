@@ -101,6 +101,7 @@ type tableKeyMap struct {
 
 	// List things
 	Filter       key.Binding
+	SubmitFilter key.Binding
 	CancelFilter key.Binding
 	ClearFilter  key.Binding
 }
@@ -157,6 +158,9 @@ var tableKeys = tableKeyMap{
 	Filter: key.NewBinding(
 		key.WithKeys("f"),
 		key.WithHelp("f", "filter"),
+	),
+	SubmitFilter: key.NewBinding(
+		key.WithKeys("enter"),
 	),
 	CancelFilter: key.NewBinding(
 		key.WithKeys("esc"),

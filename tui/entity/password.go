@@ -113,7 +113,7 @@ func (password *Password) Decrypt(priv *rsa.PrivateKey) error {
 
 func (password Password) ToTableRow() table.Row {
 	return table.Row{
-		strconv.FormatInt(password.Id, 10),               // Id (hidden)
+		strconv.FormatInt(password.Id, 10),               // ID (hidden)
 		strconv.FormatInt(password.CategoryId.Int64, 10), // CategoryId (hidden)
 		password.Name,
 		password.Email,

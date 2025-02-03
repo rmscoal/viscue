@@ -5,15 +5,16 @@ import (
 	"errors"
 
 	"viscue/tui/entity"
-	"viscue/tui/event"
 	"viscue/tui/tool/cache"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 )
 
+type CloseMsg struct{}
+
 func (m *prompt) close() tea.Msg {
-	return event.ClosePrompt
+	return CloseMsg{}
 }
 
 var insertCategoryQuery = `
@@ -56,7 +57,11 @@ var updatePasswordQuery = `
 	WHERE id=:id
 `
 
-type SubmitData any
+type DataSubmittedMsg[T interface {
+	entity.Category | entity.Password
+}] struct {
+	Model T
+}
 
 func (m *prompt) submit() tea.Msg {
 	switch model := m.model.(type) {
@@ -86,7 +91,8 @@ func (m *prompt) submit() tea.Msg {
 			}
 		}
 
-		return SubmitData(model)
+		log.Debugf("(*prompt).submit: submitting entity.Category %+v", model)
+		return DataSubmittedMsg[entity.Category]{Model: model}
 	case entity.Password:
 		model.Name = m.fields[0].Value()
 		model.Email = m.fields[1].Value()
@@ -125,7 +131,8 @@ func (m *prompt) submit() tea.Msg {
 			}
 		}
 
-		return SubmitData(model)
+		log.Debugf("(*prompt).submit: submitting entity.Password %+v", model)
+		return DataSubmittedMsg[entity.Password]{Model: model}
 	}
 
 	return nil

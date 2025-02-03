@@ -15,6 +15,12 @@ type Category struct {
 // FilterValue implements list.Item
 func (category Category) FilterValue() string { return category.Name }
 
+// Title implements list.DefaultItem
+func (category Category) Title() string { return category.Name }
+
+// Description implements list.DefaultItem
+func (category Category) Description() string { return "" }
+
 func (category Category) Validate() error {
 	err := validation.ValidateStruct(&category,
 		validation.Field(&category.Name, validation.Required),

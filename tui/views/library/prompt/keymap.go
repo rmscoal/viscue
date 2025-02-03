@@ -4,19 +4,19 @@ import "github.com/charmbracelet/bubbles/key"
 
 type baseKeyMap struct {
 	Tab    key.Binding
-	Submit key.Binding
-	Cancel key.Binding
+	Enter  key.Binding
+	Escape key.Binding
 }
 
 func (k baseKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.Submit, k.Cancel}
+	return []key.Binding{k.Tab, k.Enter, k.Escape}
 }
 
 func (k baseKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Tab},
-		{k.Submit},
-		{k.Cancel},
+		{k.Enter},
+		{k.Escape},
 	}
 }
 
@@ -25,11 +25,11 @@ var baseKeys = baseKeyMap{
 		key.WithKeys("tab", "shift+tab"),
 		key.WithHelp("tab/shift+tab", "cycle focus"),
 	),
-	Submit: key.NewBinding(
+	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "submit"),
 	),
-	Cancel: key.NewBinding(
+	Escape: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "cancel"),
 	),
@@ -41,13 +41,13 @@ type passwordKeyMap struct {
 }
 
 func (k passwordKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.ShowPassword, k.Submit, k.Cancel}
+	return []key.Binding{k.Tab, k.ShowPassword, k.Enter, k.Escape}
 }
 
 func (k passwordKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.ShowPassword, k.Tab},
-		{k.Submit, k.Cancel},
+		{k.Enter, k.Escape},
 	}
 }
 

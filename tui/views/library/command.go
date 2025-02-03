@@ -4,19 +4,15 @@ import (
 	"crypto/rsa"
 	"database/sql"
 	"errors"
+
 	"viscue/tui/entity"
-	"viscue/tui/event"
 	"viscue/tui/tool/cache"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 )
 
-func (m *library) closePrompt() tea.Msg {
-	return event.ClosePrompt
-}
-
-type loadedData struct {
+type DataLoadedMsg struct {
 	Categories []entity.Category
 	Passwords  []entity.Password
 }
@@ -75,5 +71,5 @@ func (m *library) load() tea.Msg {
 	}
 	_ = rows.Close()
 
-	return loadedData{Categories: categories, Passwords: passwords}
+	return DataLoadedMsg{Categories: categories, Passwords: passwords}
 }

@@ -8,8 +8,10 @@ import (
 	"viscue/tui/entity"
 	"viscue/tui/style"
 
+	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -21,11 +23,11 @@ var (
 	unfocusedSelectedListItem = selectedListItem.Foreground(style.ColorWhite)
 )
 
-func NewCategoryItemDelegate() ExtendedItemDelegate {
+func newCategoryItemDelegate() extendedItemDelegate {
 	return &categoryItemDelegate{focused: false}
 }
 
-type ExtendedItemDelegate interface {
+type extendedItemDelegate interface {
 	list.ItemDelegate
 	SetFocus(focus bool)
 }
@@ -39,6 +41,7 @@ func (delegate *categoryItemDelegate) Update(
 ) tea.Cmd {
 	return nil
 }
+
 func (delegate *categoryItemDelegate) Render(
 	w io.Writer, m list.Model, index int, item list.Item,
 ) {
@@ -67,16 +70,20 @@ func (delegate *categoryItemDelegate) SetFocus(focus bool) {
 	delegate.focused = focus
 }
 
-func newList(items []list.Item) list.Model {
-	lst := list.New(items, NewCategoryItemDelegate(), 15, 10)
+func newListDelegate(items []list.Item) (list.Model, extendedItemDelegate) {
+	delegate := newCategoryItemDelegate()
+	lst := list.New(items, delegate, 15, 10)
 	lst.SetShowStatusBar(false)
 	lst.SetFilteringEnabled(true)
+	lst.DisableQuitKeybindings()
 	lst.SetShowHelp(false)
+	lst.SetShowTitle(false)
 	lst.SetShowPagination(true)
-	lst.Title = "Categories"
 	lst.Styles.PaginationStyle = listPagination
+	lst.KeyMap.Filter = listKeys.Filter
+	lst.FilterInput.CharLimit = 16
 
-	return lst
+	return lst, delegate
 }
 
 var (
@@ -128,4 +135,14 @@ func newTableStyle(focus bool) table.Styles {
 	}
 
 	return s
+}
+
+func newFilter(placeholder string) textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = "🔍: "
+	ti.CharLimit = 16
+	ti.Placeholder = "Search password..."
+	ti.Cursor.SetMode(cursor.CursorStatic)
+
+	return ti
 }
