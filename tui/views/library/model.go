@@ -33,6 +33,7 @@ type library struct {
 	// Components
 	list             list.Model
 	listHelp         help.Model
+	listFilterInput  textinput.Model
 	table            table.Model
 	tableHelp        help.Model
 	tableFilterInput textinput.Model
@@ -54,9 +55,10 @@ func New(db *sqlx.DB) tea.Model {
 		// Components
 		list:             lst,
 		listHelp:         help.New(),
+		listFilterInput:  newSearch("Search category..."),
 		table:            newTable(nil),
 		tableHelp:        help.New(),
-		tableFilterInput: newFilter(""),
+		tableFilterInput: newSearch("Search password..."),
 		spinner:          style.NewSpinner(),
 		delegate:         delegate,
 		// Data
@@ -71,36 +73,24 @@ func (m *library) Init() tea.Cmd {
 func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	log.Debugf("(*library).Update: received message type %T", msg)
 	defer m.updateTableHeight()
+	defer m.setKeys()
 
 	switch msg := msg.(type) {
 	case DataLoadedMsg:
 		m.categories = msg.Categories
 		m.passwords = msg.Passwords
 		m.loaded = true
-		m.list.SetItems(
-			lo.Map(m.categories,
-				func(item entity.Category, index int) list.Item {
-					return item
-				},
-			),
-		)
-		m.table.SetRows(
-			// When data is emitted, the first selected category will be "All".
-			// Hence, we just map all our passwords entity into row.
-			lo.Map(m.passwords,
-				func(item entity.Password, index int) table.Row {
-					return item.ToTableRow()
-				},
-			),
-		)
+		m.setItems()
+		m.list.Select(0) // Select "All" category
+		m.setRows()
 		return m, nil
 	case prompt.DataSubmittedMsg[entity.Password]:
 		defer m.closePrompt()
-		m.updateTableRecord(msg.Model)
+		m.appendPassword(msg.Model)
 		return m, nil
 	case prompt.DataSubmittedMsg[entity.Category]:
 		defer m.closePrompt()
-		m.updateListRecord(msg.Model)
+		m.appendCategory(msg.Model)
 		return m, nil
 	case prompt.CloseMsg:
 		m.closePrompt()
@@ -117,8 +107,8 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case m.prompt != nil:
 			m.prompt, cmd = m.prompt.Update(msg)
-		case m.list.FilterState() == list.Filtering:
-			m.list.FilterInput, cmd = m.list.FilterInput.Update(msg)
+		case m.listFilterInput.Focused():
+			m.listFilterInput, cmd = m.listFilterInput.Update(msg)
 		case m.tableFilterInput.Focused():
 			m.tableFilterInput, cmd = m.tableFilterInput.Update(msg)
 		}
@@ -132,71 +122,83 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.focusedPane {
 		case lipgloss.Left:
-			switch {
-			case m.list.FilterState() == list.Filtering:
-				break
-			case key.Matches(msg, listKeys.Add):
-				m.prompt = prompt.NewCategory(m.db, entity.Category{})
-				return m, m.prompt.Init()
-			case key.Matches(msg, listKeys.ClearFilter):
-				m.list.ResetFilter()
+			if m.listFilterInput.Focused() {
+				switch {
+				case key.Matches(msg, keys.Escape),
+					key.Matches(msg, keys.Enter):
+					m.blurSearch()
+					return m, nil
+				}
+				var cmd tea.Cmd
+				m.listFilterInput, cmd = m.listFilterInput.Update(msg)
+				m.applyListSearch()
+				return m, cmd
+			} else {
+				switch {
+				case key.Matches(msg, keys.Add):
+					m.prompt = prompt.NewCategory(m.db, entity.Category{})
+					return m, m.prompt.Init()
+				case key.Matches(msg, keys.Edit):
+					m.prompt = prompt.NewCategory(m.db, m.list.SelectedItem().(entity.Category))
+					return m, m.prompt.Init()
+				case key.Matches(msg, keys.Delete):
+				case key.Matches(msg, keys.Search):
+					m.focusSearch()
+					return m, nil
+				case key.Matches(msg, keys.Clear):
+					m.listFilterInput.Reset()
+					m.setItems()
+					m.setRows()
+					return m, nil
+				case key.Matches(msg, keys.Switch):
+					m.switchFocus(lipgloss.Right)
+					return m, nil
+				}
+				var cmd tea.Cmd
+				m.list, cmd = m.list.Update(msg)
 				m.setRows()
-				return m, nil
-			case key.Matches(msg, listKeys.FocusRight):
-				m.focusPane(lipgloss.Right)
-				return m, nil
+				return m, cmd
 			}
 		case lipgloss.Right:
 			if m.tableFilterInput.Focused() {
 				switch {
-				case key.Matches(msg, tableKeys.SubmitFilter):
-					m.blurTableFilter()
+				case key.Matches(msg, keys.Enter),
+					key.Matches(msg, keys.Escape):
+					m.blurSearch()
 					return m, nil
-				case key.Matches(msg, tableKeys.CancelFilter):
-					m.blurTableFilter()
+				case key.Matches(msg, keys.Switch):
+					m.switchFocus(lipgloss.Left)
 					return m, nil
 				}
+				var cmd tea.Cmd
+				m.tableFilterInput, cmd = m.tableFilterInput.Update(msg)
+				m.applyTableSearch()
+				return m, cmd
 			} else {
 				switch {
-				case key.Matches(msg, tableKeys.Add):
+				case key.Matches(msg, keys.Add):
 					m.newPasswordPrompt()
 					return m, m.prompt.Init()
-				case key.Matches(msg, tableKeys.Edit):
+				case key.Matches(msg, keys.Edit):
 					m.editPasswordPrompt()
 					return m, m.prompt.Init()
-				case key.Matches(msg, tableKeys.FocusLeft):
-					m.focusPane(lipgloss.Left)
-					return m, nil
-				case key.Matches(msg, tableKeys.Filter):
-					m.focusTableFilter()
+				case key.Matches(msg, keys.Delete):
+				case key.Matches(msg, keys.Search):
+					m.focusSearch()
 					return m, textinput.Blink
-				case key.Matches(msg, tableKeys.ClearFilter):
+				case key.Matches(msg, keys.Clear):
 					m.tableFilterInput.Reset()
-					m.filterTable()
+					m.applyTableSearch()
+					return m, nil
+				case key.Matches(msg, keys.Switch):
+					m.switchFocus(lipgloss.Left)
 					return m, nil
 				}
+				var cmd tea.Cmd
+				m.table, cmd = m.table.Update(msg)
+				return m, cmd
 			}
 		}
-	}
-
-	// Pass another type of message to either table or list component
-	switch m.focusedPane {
-	case lipgloss.Left:
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		m.setRows()
-		return m, cmd
-	case lipgloss.Right:
-		var cmd tea.Cmd
-		// When table filter input is focused,
-		// we want to pass the message there instead...
-		if m.tableFilterInput.Focused() {
-			m.tableFilterInput, cmd = m.tableFilterInput.Update(msg)
-			m.filterTable()
-		} else {
-			m.table, cmd = m.table.Update(msg)
-		}
-		return m, cmd
 	}
 
 	// TODO: Error view...
@@ -218,10 +220,19 @@ func (m *library) View() string {
 	}
 
 	// Category
-	categoryView := m.list.View()
+	categoryTitle := unfocusedTitleStyle
+	if m.focusedPane == lipgloss.Left {
+		categoryTitle = titleStyle
+	}
+	categoryView := categoryTitle.Render("Category") + "\n" + m.listFilterInput.View() +
+		strings.Repeat("\n", 2) + m.list.View() + "\n"
 
 	// Passwords
-	passwordView := tableTitle() + "\n"
+	tableTitle := unfocusedTitleStyle
+	if m.focusedPane == lipgloss.Right {
+		tableTitle = titleStyle
+	}
+	passwordView := tableTitle.Render("Password") + "\n"
 	passwordView += m.tableFilterInput.View() + strings.Repeat("\n", 2)
 	tableView := m.table.View()
 	if len(m.table.Rows()) == 0 {
@@ -236,9 +247,9 @@ func (m *library) View() string {
 	// Help
 	var helpView string
 	if m.focusedPane == lipgloss.Left {
-		helpView = m.listHelp.View(listKeys)
+		helpView = m.listHelp.View(keys)
 	} else {
-		helpView = m.listHelp.View(tableKeys)
+		helpView = m.listHelp.View(keys)
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Center, libraryView, helpView)
@@ -285,59 +296,37 @@ func (m *library) updateTableHeight() {
 	}
 }
 
-func (m *library) updateTableRecord(pw entity.Password) {
-	_, index, found := lo.FindIndexOf(m.passwords,
-		func(item entity.Password) bool {
-			return item.Id == pw.Id
-		})
-	if !found {
-		m.passwords = append(m.passwords, pw)
-		sort.SliceStable(m.passwords, func(i, j int) bool {
-			return m.passwords[i].Id < m.passwords[j].Id
-		})
-	} else {
-		m.passwords[index] = pw
-	}
-	m.setRows()
-}
-
 // List
 
-func (m *library) updateListRecord(cat entity.Category) {
-	_, index, found := lo.FindIndexOf(m.categories,
-		func(item entity.Category) bool {
-			return item.Id == cat.Id
-		})
-	if !found {
-		all := m.categories[0]
-		uncategorized := m.categories[len(m.categories)-1]
-		m.categories = m.categories[1 : len(m.categories)-1]
-		m.categories = append(m.categories, cat)
-		sort.SliceStable(m.categories, func(i, j int) bool {
-			return m.categories[i].Name < m.categories[j].Name
-		})
-		m.categories = append([]entity.Category{all}, m.categories...)
-		m.categories = append(m.categories, uncategorized)
-	} else {
-		m.categories[index] = cat
-	}
-	m.list.SetItems(lo.Map(m.categories,
-		func(item entity.Category, index int) list.Item {
-			return item
-		},
-	))
+func (m *library) setItems() {
+	m.list.SetItems(
+		lo.Map(m.categories,
+			func(item entity.Category, index int) list.Item {
+				return item
+			},
+		),
+	)
 }
 
-// Pane
+// Focus
 
-func (m *library) focusPane(pos lipgloss.Position) {
+func (m *library) setKeys() {
+	switch m.focusedPane {
+	case lipgloss.Left:
+		keys.Switch = focusRight
+	case lipgloss.Right:
+		keys.Switch = focusLeft
+	}
+}
+
+func (m *library) switchFocus(pos lipgloss.Position) {
+	m.blurSearch()
 	m.focusedPane = pos
 	switch pos {
 	case lipgloss.Left:
 		m.table.Blur()
 		m.delegate.SetFocus(true)
 		m.table.SetStyles(newTableStyle(false))
-		m.blurTableFilter() // Disable filter input
 	case lipgloss.Right:
 		m.table.Focus()
 		m.delegate.SetFocus(false)
@@ -345,19 +334,31 @@ func (m *library) focusPane(pos lipgloss.Position) {
 	}
 }
 
-// Filters
+// Search
 
-func (m *library) focusTableFilter() {
-	m.tableFilterInput.Focus()
-	m.tableFilterInput.Cursor.SetMode(cursor.CursorBlink)
+func (m *library) focusSearch() {
+	switch m.focusedPane {
+	case lipgloss.Left:
+		m.listFilterInput.Focus()
+		m.listFilterInput.Cursor.SetMode(cursor.CursorBlink)
+	case lipgloss.Right:
+		m.tableFilterInput.Focus()
+		m.tableFilterInput.Cursor.SetMode(cursor.CursorBlink)
+	}
 }
 
-func (m *library) blurTableFilter() {
-	m.tableFilterInput.Blur()
-	m.tableFilterInput.Cursor.SetMode(cursor.CursorStatic)
+func (m *library) blurSearch() {
+	switch m.focusedPane {
+	case lipgloss.Left:
+		m.listFilterInput.Blur()
+		m.listFilterInput.Cursor.SetMode(cursor.CursorStatic)
+	case lipgloss.Right:
+		m.tableFilterInput.Blur()
+		m.tableFilterInput.Cursor.SetMode(cursor.CursorStatic)
+	}
 }
 
-func (m *library) filterTable() {
+func (m *library) applyTableSearch() {
 	m.setRows() // TODO: Optimize this, perhaps store the current rows in *library...
 	if m.tableFilterInput.Value() == "" {
 		return
@@ -368,7 +369,6 @@ func (m *library) filterTable() {
 			return row[2] // This is the name...
 		}))
 	sort.Stable(ranks)
-	log.Debugf("(*library).filterTable: ranks %+v", ranks)
 
 	filteredIndexes := lo.Map(ranks, func(match fuzzy.Match, index int) int {
 		return match.Index
@@ -377,9 +377,31 @@ func (m *library) filterTable() {
 		func(item table.Row, index int) bool {
 			return lo.Contains(filteredIndexes, index)
 		})
-	log.Debugf("(*library).filterTable: filteredRows %+v", filteredRows)
 	m.table.SetRows(filteredRows)
-	m.table.SetCursor(0)
+	m.table.SetCursor(0) // Select highest ranked row
+}
+
+func (m *library) applyListSearch() {
+	m.setItems()
+	if m.listFilterInput.Value() == "" {
+		return
+	}
+
+	ranks := fuzzy.Find(m.listFilterInput.Value(),
+		lo.Map(m.list.Items(), func(item list.Item, _ int) string {
+			return item.(entity.Category).Name
+		}))
+	sort.Stable(ranks)
+
+	filteredIndexes := lo.Map(ranks, func(match fuzzy.Match, index int) int {
+		return match.Index
+	})
+	filteredItems := lo.Filter(m.list.Items(),
+		func(item list.Item, index int) bool {
+			return lo.Contains(filteredIndexes, index)
+		})
+	m.list.SetItems(filteredItems)
+	m.list.Select(0) // Select highest ranked item
 }
 
 // Prompt
@@ -407,4 +429,45 @@ func (m *library) editPasswordPrompt() {
 		log.Fatal(err)
 	}
 	m.prompt = prompt.NewPassword(m.db, password)
+}
+
+func (m *library) appendPassword(pw entity.Password) {
+	_, index, found := lo.FindIndexOf(m.passwords,
+		func(item entity.Password) bool {
+			return item.Id == pw.Id
+		})
+	if !found {
+		m.passwords = append(m.passwords, pw)
+		sort.SliceStable(m.passwords, func(i, j int) bool {
+			return m.passwords[i].Id < m.passwords[j].Id
+		})
+	} else {
+		m.passwords[index] = pw
+	}
+	m.setRows()
+}
+
+func (m *library) appendCategory(cat entity.Category) {
+	_, index, found := lo.FindIndexOf(m.categories,
+		func(item entity.Category) bool {
+			return item.Id == cat.Id
+		})
+	if !found {
+		all := m.categories[0]
+		uncategorized := m.categories[len(m.categories)-1]
+		m.categories = m.categories[1 : len(m.categories)-1]
+		m.categories = append(m.categories, cat)
+		sort.SliceStable(m.categories, func(i, j int) bool {
+			return m.categories[i].Name < m.categories[j].Name
+		})
+		m.categories = append([]entity.Category{all}, m.categories...)
+		m.categories = append(m.categories, uncategorized)
+	} else {
+		m.categories[index] = cat
+	}
+	m.list.SetItems(lo.Map(m.categories,
+		func(item entity.Category, index int) list.Item {
+			return item
+		},
+	))
 }

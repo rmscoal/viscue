@@ -74,30 +74,28 @@ func newListDelegate(items []list.Item) (list.Model, extendedItemDelegate) {
 	delegate := newCategoryItemDelegate()
 	lst := list.New(items, delegate, 15, 10)
 	lst.SetShowStatusBar(false)
-	lst.SetFilteringEnabled(true)
-	lst.DisableQuitKeybindings()
+	lst.SetFilteringEnabled(false)
+	lst.SetShowHelp(false)
 	lst.SetShowHelp(false)
 	lst.SetShowTitle(false)
 	lst.SetShowPagination(true)
+	lst.DisableQuitKeybindings()
 	lst.Styles.PaginationStyle = listPagination
-	lst.KeyMap.Filter = listKeys.Filter
-	lst.FilterInput.CharLimit = 16
 
 	return lst, delegate
 }
 
 var (
-	tableTitle = lipgloss.NewStyle().
+	titleStyle = lipgloss.NewStyle().
 			Background(style.ColorPurple).
 			Foreground(style.ColorBlack).
 			MarginBottom(1).
-			Padding(0, 1).
-			SetString("Passwords").
-			Render
-	tableBorder = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(style.ColorWhite).
-			Render
+			Padding(0, 1)
+	unfocusedTitleStyle = titleStyle.Background(style.ColorGray).Foreground(style.ColorBlack)
+	// tableBorder   = lipgloss.NewStyle().
+	// 		Border(lipgloss.NormalBorder(), false, false, false, true).
+	// 		BorderForeground(style.ColorWhite).
+	// 		Render
 )
 
 func newTable(rows []table.Row) table.Model {
@@ -137,11 +135,11 @@ func newTableStyle(focus bool) table.Styles {
 	return s
 }
 
-func newFilter(placeholder string) textinput.Model {
+func newSearch(placeholder string) textinput.Model {
 	ti := textinput.New()
 	ti.Prompt = "🔍: "
 	ti.CharLimit = 16
-	ti.Placeholder = "Search password..."
+	ti.Placeholder = placeholder
 	ti.Cursor.SetMode(cursor.CursorStatic)
 
 	return ti

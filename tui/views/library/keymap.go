@@ -2,39 +2,35 @@ package library
 
 import "github.com/charmbracelet/bubbles/key"
 
-type listKeyMap struct {
-	// Navigations
-	Up         key.Binding
-	Down       key.Binding
-	NextPage   key.Binding
-	PrevPage   key.Binding
-	FocusRight key.Binding
-	Help       key.Binding
-
-	// Utilities
-	Add    key.Binding
-	Rename key.Binding
-	Delete key.Binding
-
-	// List things
-	Filter       key.Binding
-	CancelFilter key.Binding
-	ClearFilter  key.Binding
+type keyMap struct {
+	Up, Down, Next, Prev, Switch, Help,
+	Add, Edit, Delete,
+	Search, Clear, Escape, Enter key.Binding
 }
 
-func (k listKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Up, k.Down, k.FocusRight, k.Help}
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Up, k.Down, k.Switch, k.Search, k.Help}
 }
 
-func (k listKeyMap) FullHelp() [][]key.Binding {
+func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.NextPage, k.PrevPage, k.FocusRight}, // first column
-		{k.Add, k.Rename, k.Delete},                          // second column
-		{k.Filter, k.CancelFilter, k.ClearFilter},            // third column
+		{k.Up, k.Down, k.Next, k.Prev, k.Switch}, // first column
+		{k.Add, k.Edit, k.Delete},                // second column
+		{k.Search, k.Clear, k.Escape},            // third column
 	}
 }
 
-var listKeys = listKeyMap{
+var focusRight = key.NewBinding(
+	key.WithKeys("ctrl+l"),
+	key.WithHelp("ctrl+l", "focus right"),
+)
+
+var focusLeft = key.NewBinding(
+	key.WithKeys("ctrl+h"),
+	key.WithHelp("ctrl+h", "focus left"),
+)
+
+var keys = keyMap{
 	Up: key.NewBinding(
 		key.WithKeys("up", "k"),
 		key.WithHelp("↑/k", "up"),
@@ -43,15 +39,15 @@ var listKeys = listKeyMap{
 		key.WithKeys("down", "j"),
 		key.WithHelp("↓/j", "down"),
 	),
-	NextPage: key.NewBinding(
+	Next: key.NewBinding(
 		key.WithKeys("right", "l"),
 		key.WithHelp("→/l", "next page"),
 	),
-	PrevPage: key.NewBinding(
+	Prev: key.NewBinding(
 		key.WithKeys("left", "h"),
 		key.WithHelp("←/h", "prev page"),
 	),
-	FocusRight: key.NewBinding(
+	Switch: key.NewBinding(
 		key.WithKeys("ctrl+l"),
 		key.WithHelp("ctrl+l", "focus right"),
 	),
@@ -63,111 +59,26 @@ var listKeys = listKeyMap{
 		key.WithKeys("a"),
 		key.WithHelp("a", "add"),
 	),
-	Rename: key.NewBinding(
-		key.WithKeys("e"),
-		key.WithHelp("e", "edit current"),
-	),
-	Delete: key.NewBinding(
-		key.WithKeys("d"),
-		key.WithHelp("d", "delete current"),
-	),
-	Filter: key.NewBinding(
-		key.WithKeys("f"),
-		key.WithHelp("f", "filter"),
-	),
-	CancelFilter: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "exit filter"),
-	),
-	ClearFilter: key.NewBinding(
-		key.WithKeys("c"),
-		key.WithHelp("c", "clear filter"),
-	),
-}
-
-type tableKeyMap struct {
-	// Navigations
-	Up        key.Binding
-	Down      key.Binding
-	NextPage  key.Binding
-	PrevPage  key.Binding
-	FocusLeft key.Binding
-	Help      key.Binding
-
-	// Utilities
-	Add    key.Binding
-	Edit   key.Binding
-	Delete key.Binding
-
-	// List things
-	Filter       key.Binding
-	SubmitFilter key.Binding
-	CancelFilter key.Binding
-	ClearFilter  key.Binding
-}
-
-func (k tableKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Up, k.Down, k.FocusLeft, k.Help}
-}
-
-func (k tableKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Up, k.Down, k.NextPage, k.PrevPage, k.FocusLeft}, // first column
-		{k.Add, k.Edit, k.Delete},                           // second column
-		{k.Filter, k.CancelFilter, k.ClearFilter},           // third column
-	}
-}
-
-var tableKeys = tableKeyMap{
-	Up: key.NewBinding(
-		key.WithKeys("up", "k"),
-		key.WithHelp("↑/k", "up"),
-	),
-	Down: key.NewBinding(
-		key.WithKeys("down", "j"),
-		key.WithHelp("↓/j", "down"),
-	),
-	NextPage: key.NewBinding(
-		key.WithKeys("right", "l"),
-		key.WithHelp("→/l", "next page"),
-	),
-	PrevPage: key.NewBinding(
-		key.WithKeys("left", "h"),
-		key.WithHelp("←/h", "prev page"),
-	),
-	FocusLeft: key.NewBinding(
-		key.WithKeys("ctrl+h"),
-		key.WithHelp("ctrl+h", "focus left"),
-	),
-	Help: key.NewBinding(
-		key.WithKeys("?"),
-		key.WithHelp("?", "toggle help"),
-	),
-	Add: key.NewBinding(
-		key.WithKeys("a"),
-		key.WithHelp("a", "add"),
-	),
 	Edit: key.NewBinding(
-		key.WithKeys("e", "enter"),
-		key.WithHelp("e", "edit current"),
+		key.WithKeys("e"),
+		key.WithHelp("e", "edit"),
 	),
 	Delete: key.NewBinding(
 		key.WithKeys("d"),
-		key.WithHelp("d", "delete current"),
+		key.WithHelp("d", "delete"),
 	),
-	Filter: key.NewBinding(
+	Search: key.NewBinding(
 		key.WithKeys("f"),
-		key.WithHelp("f", "filter"),
+		key.WithHelp("f", "search"),
 	),
-	SubmitFilter: key.NewBinding(
-		key.WithKeys("enter"),
-	),
-	CancelFilter: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "exit filter"),
-	),
-	ClearFilter: key.NewBinding(
+	Clear: key.NewBinding(
 		key.WithKeys("c"),
-		key.WithHelp("c", "clear filter"),
+		key.WithHelp("c", "clear search"),
+	),
+	Escape: key.NewBinding(
+		key.WithKeys("esc"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("enter"),
 	),
 }
