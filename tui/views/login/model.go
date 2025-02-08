@@ -3,8 +3,6 @@ package login
 import (
 	"database/sql"
 	"errors"
-	fatalLog "log"
-	"strings"
 
 	"viscue/tui/style"
 
@@ -13,6 +11,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -64,9 +64,9 @@ func New(db *sqlx.DB) tea.Model {
 	query := `SELECT value FROM configurations WHERE key = ?`
 	err := db.QueryRowx(query, "username").Scan(&username)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		fatalLog.Fatalf(
-			"failed querying username from sqlite when setting up app: %s",
-			err.Error(),
+		log.Fatal(
+			"failed querying username from sqlite when setting up app",
+			"err", err,
 		)
 	}
 
@@ -136,18 +136,28 @@ func (m *login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *login) View() string {
-	msg := "Please enter your credentials!"
-	helpView := m.help.View(keys)
-	view := msg +
-		"\n" +
-		m.usernameInput.View() +
-		"\n" +
-		m.passwordInput.View()
+	height := style.CalculateAppHeight()
+	loginContainer := lipgloss.NewStyle().
+		Align(lipgloss.Center, lipgloss.Center).
+		Height(height).
+		Render
+
+	form := lipgloss.JoinVertical(lipgloss.Left,
+		m.usernameInput.View(),
+		m.passwordInput.View(),
+	)
 
 	if m.err != nil {
-		view += strings.Repeat("\n", 2) + style.ErrorText(m.err.Error())
+		form = lipgloss.JoinVertical(
+			lipgloss.Center,
+			form,
+			style.ErrorText(m.err.Error()),
+		)
 	}
 
-	view += strings.Repeat("\n", 3) + helpView
-	return view
+	return lipgloss.JoinVertical(
+		lipgloss.Center,
+		loginContainer(form),
+		style.HelpContainer(m.help.View(keys)),
+	)
 }

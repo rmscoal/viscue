@@ -2,16 +2,19 @@ package tui
 
 import (
 	"os"
-	"strings"
 	"time"
 
 	"viscue/tui/event"
+	"viscue/tui/style"
+	"viscue/tui/tool/cache"
 	"viscue/tui/tool/database"
 	"viscue/tui/views/library"
 	"viscue/tui/views/login"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/charmbracelet/x/term"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -22,6 +25,15 @@ type app struct {
 }
 
 func NewApp(db *sqlx.DB) tea.Model {
+	width, height, err := term.GetSize(os.Stdout.Fd())
+	if err != nil {
+		log.Fatal("NewApp: failed getting terminal size", "err", err)
+	}
+
+	cache.Set(cache.TerminalWidth, width)
+	cache.Set(cache.TerminalHeight, height)
+	log.Debug("Running Viscue with terminal size", "width", width, "height", height)
+
 	return &app{
 		db:          db,
 		currentView: login.New(db),
@@ -55,16 +67,23 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *app) View() string {
-	title := "Viscue - A terminal password manager"
+	width := cache.Get[int](cache.TerminalWidth)
+	canvas := lipgloss.NewStyle().Width(width).Render
+	header := style.TitleContainer.Width(width).Render(
+		lipgloss.JoinVertical(
+			lipgloss.Center,
+			style.Title,
+			style.SubTitle,
+		),
+	)
 
-	// width, height, err := term.GetSize(os.Stdout.Fd())
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// cache.Set(cache.TerminalWidth, width)
-	// cache.Set(cache.TerminalHeight, height)
-
-	return title + strings.Repeat("\n", 2) + m.currentView.View()
+	return canvas(
+		lipgloss.JoinVertical(
+			lipgloss.Center,
+			header,
+			m.currentView.View(),
+		),
+	)
 }
 
 func Run() int {

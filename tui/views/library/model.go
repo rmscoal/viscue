@@ -3,10 +3,10 @@ package library
 import (
 	"database/sql"
 	"sort"
-	"strings"
 
 	"viscue/tui/entity"
 	"viscue/tui/style"
+	"viscue/tui/tool/cache"
 	"viscue/tui/views/library/prompt"
 
 	"github.com/charmbracelet/bubbles/cursor"
@@ -72,7 +72,6 @@ func (m *library) Init() tea.Cmd {
 
 func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	log.Debugf("(*library).Update: received message type %T", msg)
-	defer m.updateTableHeight()
 	defer m.setKeys()
 
 	switch msg := msg.(type) {
@@ -139,7 +138,8 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.prompt = prompt.NewCategory(m.db, entity.Category{})
 					return m, m.prompt.Init()
 				case key.Matches(msg, keys.Edit):
-					m.prompt = prompt.NewCategory(m.db, m.list.SelectedItem().(entity.Category))
+					selectedCategory := m.list.SelectedItem().(entity.Category)
+					m.prompt = prompt.NewCategory(m.db, selectedCategory)
 					return m, m.prompt.Init()
 				case key.Matches(msg, keys.Delete):
 				case key.Matches(msg, keys.Search):
@@ -207,42 +207,95 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *library) View() string {
-	if m.err != nil {
-		return "Error: " + style.ErrorText(m.err.Error())
-	}
-
 	if !m.loaded {
 		return m.spinner.View() + " " + "Opening vault... Please wait"
-	}
-
-	if m.prompt != nil {
+	} else if m.prompt != nil {
 		return m.prompt.View()
 	}
 
-	// Category
-	categoryTitle := unfocusedTitleStyle
+	height := style.CalculateAppHeight()
+	width := cache.Get[int](cache.TerminalWidth)
+
+	// Calculate the height and width for the library view
+	availableHeight := height - 6 // The 6 account for help view
+	libaryViewWidth := width - 6  // The 6 account for borders and padding
+	// Calculate the width for each pane
+	categoryListHeight := min(maxListHeight, availableHeight)
+	categoryPaneWidth := libaryViewWidth * 40 / 100
+	passwordTableHeight := min(maxTableHeight, availableHeight)
+	passwordPaneWidth := libaryViewWidth * 60 / 100
+
+	libraryContainer := lipgloss.NewStyle().
+		Height(height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render
+	paneBorder := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(1)
+
+	if m.err != nil {
+		errTitle := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(style.ColorRed).
+			Render("Oops! Something went wrong.")
+		errDesc := lipgloss.NewStyle().
+			Italic(true).
+			Foreground(style.ColorRedPale).
+			Render(m.err.Error())
+		return libraryContainer(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				errTitle,
+				errDesc,
+			),
+		)
+	}
+
+	// Category Pane
+	categoryTitleStyle := unfocusedTitleStyle
 	if m.focusedPane == lipgloss.Left {
-		categoryTitle = titleStyle
+		categoryTitleStyle = titleStyle
 	}
-	categoryView := categoryTitle.Render("Category") + "\n" + m.listFilterInput.View() +
-		strings.Repeat("\n", 2) + m.list.View() + "\n"
+	categoryTitle := categoryTitleStyle.Render("Category")
+	m.list.SetSize(categoryPaneWidth, categoryListHeight)
+	categoryView := paneBorder.Render(
+		lipgloss.JoinVertical(
+			lipgloss.Left,
+			categoryTitle,
+			m.listFilterInput.View(),
+			m.list.View(),
+		),
+	)
 
-	// Passwords
-	tableTitle := unfocusedTitleStyle
+	// Password Pane
+	// TODO: FIX ME, bug
+	passwordTitleStyle := unfocusedTitleStyle
 	if m.focusedPane == lipgloss.Right {
-		tableTitle = titleStyle
+		passwordTitleStyle = titleStyle
 	}
-	passwordView := tableTitle.Render("Password") + "\n"
-	passwordView += m.tableFilterInput.View() + strings.Repeat("\n", 2)
-	tableView := m.table.View()
+	passwordTitle := passwordTitleStyle.Render("Password")
+	var tableView string
+	m.table.SetWidth(passwordPaneWidth)
+	m.table.SetColumns(newTableColumns(passwordPaneWidth))
 	if len(m.table.Rows()) == 0 {
-		tableView = lipgloss.JoinVertical(lipgloss.Center,
-			tableView, "No data")
+		m.table.SetHeight(2)
+		tableView = lipgloss.JoinVertical(
+			lipgloss.Center,
+			m.table.View(),
+			"No passwords found.",
+		)
+	} else {
+		m.table.SetHeight(passwordTableHeight)
+		tableView = m.table.View()
 	}
-	passwordView += tableView
-
-	libraryView := lipgloss.JoinHorizontal(lipgloss.Top, categoryView,
-		passwordView)
+	passwordView := paneBorder.Render(
+		lipgloss.JoinVertical(
+			lipgloss.Left,
+			passwordTitle,
+			m.tableFilterInput.View(),
+			tableView,
+		),
+	)
 
 	// Help
 	var helpView string
@@ -252,7 +305,17 @@ func (m *library) View() string {
 		helpView = m.listHelp.View(keys)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Center, libraryView, helpView)
+	return lipgloss.JoinVertical(
+		lipgloss.Center,
+		libraryContainer(
+			lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				categoryView,
+				passwordView,
+			),
+		),
+		style.HelpContainer(helpView),
+	)
 }
 
 //////////////////////////////////
@@ -285,15 +348,6 @@ func (m *library) setRows() {
 	}
 	m.table.SetRows(rows)
 	m.table.SetCursor(0)
-}
-
-func (m *library) updateTableHeight() {
-	if len(m.table.Rows()) == 0 {
-		// I don't know why setting this to 0 causes error when data is empty...
-		m.table.SetHeight(2)
-	} else {
-		m.table.SetHeight(10)
-	}
 }
 
 // List
@@ -378,7 +432,7 @@ func (m *library) applyTableSearch() {
 			return lo.Contains(filteredIndexes, index)
 		})
 	m.table.SetRows(filteredRows)
-	m.table.SetCursor(0) // Select highest ranked row
+	m.table.SetCursor(0) // Select the highest ranked row
 }
 
 func (m *library) applyListSearch() {

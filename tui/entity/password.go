@@ -112,14 +112,18 @@ func (password *Password) Decrypt(priv *rsa.PrivateKey) error {
 }
 
 func (password Password) ToTableRow() table.Row {
+	username := "-"
+	if password.Username != "" {
+		username = password.Username
+	}
+
 	return table.Row{
 		strconv.FormatInt(password.Id, 10),               // ID (hidden)
 		strconv.FormatInt(password.CategoryId.Int64, 10), // CategoryId (hidden)
 		password.Name,
 		password.Email,
-		password.Username,
-		strings.Repeat("•", len(password.Password)), // Password (masked)
-		password.Password, // Actual password (hidden)
+		username + "\n",
+		password.Password, // Password (hidden)
 	}
 }
 
