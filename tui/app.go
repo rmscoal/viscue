@@ -4,12 +4,12 @@ import (
 	"os"
 	"time"
 
+	"viscue/tui/component/list"
 	"viscue/tui/event"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
 	"viscue/tui/tool/database"
 	"viscue/tui/views/library"
-	"viscue/tui/views/login"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -24,6 +24,12 @@ type app struct {
 	currentView tea.Model
 }
 
+type s string
+
+func (s s) String() string {
+	return string(s)
+}
+
 func NewApp(db *sqlx.DB) tea.Model {
 	width, height, err := term.GetSize(os.Stdout.Fd())
 	if err != nil {
@@ -32,11 +38,39 @@ func NewApp(db *sqlx.DB) tea.Model {
 
 	cache.Set(cache.TerminalWidth, width)
 	cache.Set(cache.TerminalHeight, height)
-	log.Debug("Running Viscue with terminal size", "width", width, "height", height)
+	log.Debug("Running Viscue with terminal size", "width", width, "height",
+		height)
+
+	items := []list.Item{
+		s("Xh7pLwT2mK"),
+		s("q9NvZsFbCJ"),
+		s("r4YtVpWQxL"),
+		s("d5MkXzT8Jq"),
+		s("bN6vPZcLYw"),
+		s("KJ7tXqM9Lp"),
+		s("W8rZbVQYdN"),
+		s("mT4pFqXJ6w"),
+		s("c9LZVbYtMN"),
+		s("XJW7pqT8rL"),
+		s("Mv6NQZLbTY"),
+		s("X7tJpWq9rL"),
+		s("V8bZNYcTWQ"),
+		s("JpM7XqL9rT"),
+		s("WbNZVY8cQ6"),
+		s("LJXT7pqM9r"),
+		s("TYbZV8NcWQ"),
+		s("MpJ7XqTL9r"),
+		s("6bZNWYV8cQ"),
+		s("T7JXpMq9WL"),
+	}
+
+	lst := list.New()
+	lst.SetItems(items)
 
 	return &app{
-		db:          db,
-		currentView: login.New(db),
+		db: db,
+		// currentView: login.New(db),
+		currentView: lst,
 	}
 }
 
@@ -46,6 +80,10 @@ func (m *app) Init() tea.Cmd {
 
 func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		cache.Set(cache.TerminalHeight, msg.Height)
+		cache.Set(cache.TerminalWidth, msg.Width)
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":

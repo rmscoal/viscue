@@ -150,7 +150,8 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.setItems()
 					m.setRows()
 					return m, nil
-				case key.Matches(msg, keys.Switch):
+				case key.Matches(msg, keys.Switch), key.Matches(msg,
+					keys.Enter):
 					m.switchFocus(lipgloss.Right)
 					return m, nil
 				}
@@ -162,8 +163,8 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case lipgloss.Right:
 			if m.tableFilterInput.Focused() {
 				switch {
-				case key.Matches(msg, keys.Enter),
-					key.Matches(msg, keys.Escape):
+				case key.Matches(msg, keys.Enter), key.Matches(msg,
+					keys.Escape):
 					m.blurSearch()
 					return m, nil
 				case key.Matches(msg, keys.Switch):
@@ -201,8 +202,6 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// TODO: Error view...
-
 	return m, nil
 }
 
@@ -213,25 +212,29 @@ func (m *library) View() string {
 		return m.prompt.View()
 	}
 
-	height := style.CalculateAppHeight()
+	height := style.CalculateAppHeight() - 2
 	width := cache.Get[int](cache.TerminalWidth)
-
-	// Calculate the height and width for the library view
-	availableHeight := height - 6 // The 6 account for help view
-	libaryViewWidth := width - 6  // The 6 account for borders and padding
-	// Calculate the width for each pane
-	categoryListHeight := min(maxListHeight, availableHeight)
-	categoryPaneWidth := libaryViewWidth * 40 / 100
-	passwordTableHeight := min(maxTableHeight, availableHeight)
-	passwordPaneWidth := libaryViewWidth * 60 / 100
+	libraryViewWidth := width - 6
+	categoryPaneWidth := libraryViewWidth * 20 / 100
+	passwordPaneWidth := libraryViewWidth * 60 / 100
 
 	libraryContainer := lipgloss.NewStyle().
 		Height(height).
-		Align(lipgloss.Center, lipgloss.Center).
+		Align(lipgloss.Center, lipgloss.Top).
 		Render
+	searchBox := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(style.ColorGray).
+		Align(lipgloss.Left, lipgloss.Center).
+		PaddingLeft(1).
+		PaddingRight(1)
 	paneBorder := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		Padding(1)
+		Align(lipgloss.Center, lipgloss.Top).
+		Height(height).
+		MaxHeight(height + 2).
+		Padding(1).
+		Render
 
 	if m.err != nil {
 		errTitle := lipgloss.NewStyle().
@@ -257,42 +260,50 @@ func (m *library) View() string {
 		categoryTitleStyle = titleStyle
 	}
 	categoryTitle := categoryTitleStyle.Render("Category")
-	m.list.SetSize(categoryPaneWidth, categoryListHeight)
-	categoryView := paneBorder.Render(
-		lipgloss.JoinVertical(
-			lipgloss.Left,
-			categoryTitle,
-			m.listFilterInput.View(),
-			m.list.View(),
-		),
-	)
+	listHeight := 2 * len(m.list.Items())
+	listHeight = min(listHeight, height-18)
+	m.list.SetSize(categoryPaneWidth, listHeight)
+	listView := m.list.View()
+	listWidth := lipgloss.Width(listView)
+	searchBox = searchBox.Width(listWidth)
+	if m.listFilterInput.Focused() {
+		searchBox = searchBox.BorderForeground(style.ColorPurple)
+	}
+	categoryView := paneBorder(lipgloss.JoinVertical(
+		lipgloss.Left,
+		categoryTitle,
+		searchBox.Render(m.listFilterInput.View()),
+		listView,
+	))
 
 	// Password Pane
-	// TODO: FIX ME, bug
 	passwordTitleStyle := unfocusedTitleStyle
 	if m.focusedPane == lipgloss.Right {
 		passwordTitleStyle = titleStyle
 	}
 	passwordTitle := passwordTitleStyle.Render("Password")
-	var tableView string
+	tableHeight := 1*len(m.table.Rows()) + tableColumnHeight
+	tableHeight = min(height-8, tableHeight)
+	m.table.SetHeight(tableHeight)
 	m.table.SetWidth(passwordPaneWidth)
 	m.table.SetColumns(newTableColumns(passwordPaneWidth))
+	tableView := m.table.View()
 	if len(m.table.Rows()) == 0 {
-		m.table.SetHeight(2)
 		tableView = lipgloss.JoinVertical(
 			lipgloss.Center,
-			m.table.View(),
+			tableView,
 			"No passwords found.",
 		)
-	} else {
-		m.table.SetHeight(passwordTableHeight)
-		tableView = m.table.View()
 	}
-	passwordView := paneBorder.Render(
+	searchBox = searchBox.Width(m.table.Width() - 4)
+	if m.tableFilterInput.Focused() {
+		searchBox = searchBox.BorderForeground(style.ColorPurple)
+	}
+	passwordView := paneBorder(
 		lipgloss.JoinVertical(
 			lipgloss.Left,
 			passwordTitle,
-			m.tableFilterInput.View(),
+			searchBox.Render(m.tableFilterInput.View()),
 			tableView,
 		),
 	)
@@ -455,7 +466,7 @@ func (m *library) applyListSearch() {
 			return lo.Contains(filteredIndexes, index)
 		})
 	m.list.SetItems(filteredItems)
-	m.list.Select(0) // Select highest ranked item
+	m.list.Select(0) // Select the highest ranked item
 }
 
 // Prompt

@@ -15,138 +15,143 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+	tableMaxHeight    = 20
+	tableColumnHeight = 2
+
+	maxListHeight      = 12
+	maxTableHeight     = 20
+	columnDefaultWidth = 24
+	maxItemWidth       = 48
+)
+
+// List styles
 var (
 	listPagination = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
-	listItem       = lipgloss.NewStyle().PaddingLeft(2).
+	listItem       = lipgloss.NewStyle().
+			PaddingLeft(2).
 			Foreground(style.ColorWhite).
-			Width(36).
-			MaxWidth(36).
-			Border(lipgloss.NormalBorder(), false, false, true, false). // Only the bottom...
+			MaxWidth(maxItemWidth).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
 			BorderForeground(style.ColorGray)
-
-	selectedListItem          = listItem.Foreground(style.ColorWhite).Background(style.ColorPurple)
-	unfocusedSelectedListItem = selectedListItem.
-					Foreground(style.ColorWhite).
-					Background(style.ColorGray)
-	noListItem = lipgloss.NewStyle().Width(36).Align(lipgloss.Center).Underline(true)
+	selectedListItem          = listItem.Background(style.ColorPurple)
+	unfocusedSelectedListItem = listItem.Background(style.ColorGray)
+	noListItem                = lipgloss.NewStyle().
+					Width(maxItemWidth).
+					Align(lipgloss.Center).
+					Underline(true)
 )
 
-func newCategoryItemDelegate() extendedItemDelegate {
-	return &categoryItemDelegate{focused: false}
-}
-
-type extendedItemDelegate interface {
-	list.ItemDelegate
-	SetFocus(focus bool)
-}
-
-type categoryItemDelegate struct{ focused bool }
-
-func (delegate *categoryItemDelegate) Height() int  { return 1 }
-func (delegate *categoryItemDelegate) Spacing() int { return 0 }
-func (delegate *categoryItemDelegate) Update(
-	_ tea.Msg, _ *list.Model,
-) tea.Cmd {
-	return nil
-}
-
-func (delegate *categoryItemDelegate) Render(
-	w io.Writer, m list.Model, index int, item list.Item,
-) {
-	category, ok := item.(entity.Category)
-	if !ok {
-		return
-	}
-
-	str := category.Name
-	if len(str) > 36 {
-		str = str[:33] + "…"
-	}
-	st := listItem
-
-	if index == m.Index() {
-		st = unfocusedSelectedListItem
-		if delegate.focused {
-			st = selectedListItem
-		}
-	}
-
-	if index == 0 {
-		st = st.BorderTop(true)
-	}
-
-	_, _ = fmt.Fprint(w, st.Render(str))
-}
-
-func (delegate *categoryItemDelegate) SetFocus(focus bool) {
-	delegate.focused = focus
-}
-
-const (
-	maxListHeight  = 15
-	maxTableHeight = 20
-)
-
-func newListDelegate(items []list.Item) (list.Model, extendedItemDelegate) {
-	delegate := newCategoryItemDelegate()
-	lst := list.New(items, delegate, 36, 15)
-	lst.SetShowStatusBar(false)
-	lst.SetFilteringEnabled(false)
-	lst.SetShowHelp(false)
-	lst.SetShowHelp(false)
-	lst.SetShowTitle(false)
-	lst.SetShowPagination(true)
-	lst.DisableQuitKeybindings()
-	lst.SetStatusBarItemName("category", "categories")
-	lst.Styles.NoItems = noListItem
-	lst.Styles.PaginationStyle = listPagination
-
-	return lst, delegate
-}
-
+// Title styles
 var (
 	titleStyle = lipgloss.NewStyle().
 			Background(style.ColorPurple).
 			Foreground(style.ColorBlack).
 			MarginBottom(2).
 			Padding(0, 1)
-	unfocusedTitleStyle = titleStyle.Background(style.ColorGray).
-				Foreground(style.ColorBlack)
+	unfocusedTitleStyle = titleStyle.Background(style.ColorGray)
 )
 
+// Category delegate
+type (
+	extendedItemDelegate interface {
+		list.ItemDelegate
+		SetFocus(focus bool)
+	}
+
+	categoryItemDelegate struct {
+		focused bool
+	}
+)
+
+func newCategoryItemDelegate() extendedItemDelegate {
+	return &categoryItemDelegate{focused: false}
+}
+
+func (d *categoryItemDelegate) Height() int                             { return 1 }
+func (d *categoryItemDelegate) Spacing() int                            { return 0 }
+func (d *categoryItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d *categoryItemDelegate) SetFocus(focus bool)                     { d.focused = focus }
+
+func (d *categoryItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	category, ok := item.(entity.Category)
+	if !ok {
+		return
+	}
+
+	str := category.Name
+	if len(str) > m.Width() {
+		str = str[:m.Width()-3] + "…"
+	}
+
+	st := listItem.Width(m.Width())
+	if index == m.Index() {
+		if d.focused {
+			st = selectedListItem.Width(m.Width())
+		} else {
+			st = unfocusedSelectedListItem.Width(m.Width())
+		}
+	}
+
+	fmt.Fprint(w, st.Render(str))
+}
+
+// List component
+func newListDelegate(items []list.Item) (list.Model, extendedItemDelegate) {
+	delegate := newCategoryItemDelegate()
+	lst := list.New(items, delegate, maxItemWidth, maxListHeight)
+
+	lst.SetShowStatusBar(false)
+	lst.SetFilteringEnabled(false)
+	lst.SetShowHelp(false)
+	lst.SetShowTitle(false)
+	lst.SetShowPagination(false)
+	lst.DisableQuitKeybindings()
+	lst.SetStatusBarItemName("category", "categories")
+
+	lst.Styles.NoItems = noListItem
+	lst.Styles.PaginationStyle = listPagination
+
+	return lst, delegate
+}
+
+// Table component
 func newTableColumns(width int) []table.Column {
+	width = (width - 8) / 3 // Account for borders and padding
 	return []table.Column{
 		{Title: "Id", Width: 0},
 		{Title: "CategoryId", Width: 0},
-		{Title: "Name", Width: width / 3},
-		{Title: "Email", Width: width / 3},
-		{Title: "Username", Width: width / 3},
+		{Title: "Name", Width: width},
+		{Title: "Email", Width: width},
+		{Title: "Username", Width: width},
 		{Title: "Password", Width: 0},
 	}
 }
 
 func newTable(rows []table.Row) table.Model {
-	columns := newTableColumns(24 * 3)
-
+	columns := newTableColumns(columnDefaultWidth * 3)
 	return table.New(
-		table.WithColumns(columns), table.WithRows(rows),
+		table.WithColumns(columns),
+		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithStyles(newTableStyle(true)))
+		table.WithStyles(newTableStyle(true)),
+	)
 }
 
 func newTableStyle(focus bool) table.Styles {
 	s := table.DefaultStyles()
+
 	s.Header = s.Header.
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(style.ColorWhite).
 		BorderBottom(true).
 		Bold(true)
 
-	s.Cell = s.Cell.AlignHorizontal(lipgloss.Right)
-
-	s.Selected = s.Selected.Bold(false).
+	s.Selected = s.Selected.
+		Bold(false).
 		Foreground(style.ColorWhite).
 		Background(style.ColorGray)
+
 	if focus {
 		s.Selected = s.Selected.
 			Foreground(style.ColorBlack).
@@ -156,12 +161,11 @@ func newTableStyle(focus bool) table.Styles {
 	return s
 }
 
+// Search component
 func newSearch(placeholder string) textinput.Model {
 	ti := textinput.New()
 	ti.Prompt = "🔍: "
-	ti.CharLimit = 16
 	ti.Placeholder = placeholder
 	ti.Cursor.SetMode(cursor.CursorStatic)
-
 	return ti
 }

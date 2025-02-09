@@ -17,6 +17,7 @@ const (
 var (
 	memStore map[Key]any
 	once     sync.Once
+	mutex    sync.RWMutex
 )
 
 func init() {
@@ -27,10 +28,14 @@ func init() {
 
 // Get retrieves a value from the cache. Returns nil for not existing key.
 func Get[T any](key Key) T {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	return memStore[key].(T)
 }
 
 // Set inserts key value pair to the cache. It replaces existing pair.
 func Set(key Key, value any) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	memStore[key] = value
 }

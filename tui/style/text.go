@@ -31,6 +31,7 @@ var (
 	HelpContainer = lipgloss.NewStyle().
 			Align(lipgloss.Center, lipgloss.Center).
 			Height(HelpViewHeight).
+			MaxHeight(HelpViewHeight).
 			Render
 )
 
