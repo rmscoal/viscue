@@ -12,14 +12,10 @@ type Category struct {
 	Name string `db:"name"`
 }
 
-// FilterValue implements list.Item
-func (category Category) FilterValue() string { return category.Name }
-
-// Title implements list.DefaultItem
-func (category Category) Title() string { return category.Name }
-
-// Description implements list.DefaultItem
-func (category Category) Description() string { return "" }
+// String implements list.Item
+func (category Category) String() string {
+	return category.Name
+}
 
 func (category Category) Validate() error {
 	err := validation.ValidateStruct(&category,

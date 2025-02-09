@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"sort"
 
+	"viscue/tui/component/list"
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
@@ -12,7 +13,6 @@ import (
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -31,39 +31,67 @@ type library struct {
 	prompt tea.Model
 
 	// Components
-	list             list.Model
-	listHelp         help.Model
-	listFilterInput  textinput.Model
-	table            table.Model
-	tableHelp        help.Model
-	tableFilterInput textinput.Model
-	spinner          spinner.Model
-	delegate         extendedItemDelegate
+	list        list.Model
+	listHelp    help.Model
+	listFilter  textinput.Model
+	table       table.Model
+	tableHelp   help.Model
+	tableFilter textinput.Model
+	spinner     spinner.Model
+
+	// Dynamic styles
+	container       lipgloss.Style
+	listPaneBorder  lipgloss.Style
+	tablePaneBorder lipgloss.Style
 
 	// Data
-	categories  []entity.Category
-	passwords   []entity.Password
-	focusedPane lipgloss.Position
-	err         error
-	loaded      bool
+	categories    []entity.Category
+	passwords     []entity.Password
+	height, width int
+	focusedPane   lipgloss.Position
+	err           error
+	loaded        bool
 }
 
 func New(db *sqlx.DB) tea.Model {
-	lst, delegate := newListDelegate(nil)
-	return &library{
+	height := style.CalculateAppHeight() - 2
+	width := cache.Get[int](cache.TerminalWidth) - 6
+	container := lipgloss.NewStyle().
+		Height(height).
+		Align(lipgloss.Center, lipgloss.Top)
+	paneBorder := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Align(lipgloss.Center, lipgloss.Top).
+		Height(height).
+		MaxHeight(height + 2).
+		Padding(1)
+
+	model := &library{
 		db: db,
 		// Components
-		list:             lst,
-		listHelp:         help.New(),
-		listFilterInput:  newSearch("Search category..."),
-		table:            newTable(nil),
-		tableHelp:        help.New(),
-		tableFilterInput: newSearch("Search password..."),
-		spinner:          style.NewSpinner(),
-		delegate:         delegate,
+		list:       list.New(),
+		listHelp:   help.New(),
+		listFilter: newSearch("Search category..."),
+		table: table.New(
+			table.WithFocused(true),
+			table.WithStyles(newTableStyle(true)),
+		),
+		tableHelp:   help.New(),
+		tableFilter: newSearch("Search password..."),
+		spinner:     style.NewSpinner(),
+		// Dynamic styles
+		container:       container,
+		listPaneBorder:  paneBorder,
+		tablePaneBorder: paneBorder,
 		// Data
+		height:      height,
+		width:       width,
 		focusedPane: lipgloss.Right,
 	}
+
+	model.calculateDimension(width, height)
+
+	return model
 }
 
 func (m *library) Init() tea.Cmd {
@@ -80,7 +108,7 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.passwords = msg.Passwords
 		m.loaded = true
 		m.setItems()
-		m.list.Select(0) // Select "All" category
+		m.list.SetIndex(0)
 		m.setRows()
 		return m, nil
 	case prompt.DataSubmittedMsg[entity.Password]:
@@ -106,12 +134,17 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case m.prompt != nil:
 			m.prompt, cmd = m.prompt.Update(msg)
-		case m.listFilterInput.Focused():
-			m.listFilterInput, cmd = m.listFilterInput.Update(msg)
-		case m.tableFilterInput.Focused():
-			m.tableFilterInput, cmd = m.tableFilterInput.Update(msg)
+		case m.listFilter.Focused():
+			m.listFilter, cmd = m.listFilter.Update(msg)
+		case m.tableFilter.Focused():
+			m.tableFilter, cmd = m.tableFilter.Update(msg)
 		}
 		return m, cmd
+	case tea.WindowSizeMsg:
+		// NOTE: The main app has saved this size in cache
+		// before passing to its submodels.
+		m.calculateDimension(msg.Width-6, style.CalculateAppHeight()-2)
+		return m, nil
 	case tea.KeyMsg:
 		if m.prompt != nil {
 			var cmd tea.Cmd
@@ -121,7 +154,7 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.focusedPane {
 		case lipgloss.Left:
-			if m.listFilterInput.Focused() {
+			if m.listFilter.Focused() {
 				switch {
 				case key.Matches(msg, keys.Escape),
 					key.Matches(msg, keys.Enter):
@@ -129,7 +162,7 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				var cmd tea.Cmd
-				m.listFilterInput, cmd = m.listFilterInput.Update(msg)
+				m.listFilter, cmd = m.listFilter.Update(msg)
 				m.applyListSearch()
 				return m, cmd
 			} else {
@@ -146,12 +179,12 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focusSearch()
 					return m, nil
 				case key.Matches(msg, keys.Clear):
-					m.listFilterInput.Reset()
+					m.listFilter.Reset()
 					m.setItems()
 					m.setRows()
 					return m, nil
-				case key.Matches(msg, keys.Switch), key.Matches(msg,
-					keys.Enter):
+				case key.Matches(msg, keys.Switch),
+					key.Matches(msg, keys.Enter):
 					m.switchFocus(lipgloss.Right)
 					return m, nil
 				}
@@ -161,7 +194,7 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		case lipgloss.Right:
-			if m.tableFilterInput.Focused() {
+			if m.tableFilter.Focused() {
 				switch {
 				case key.Matches(msg, keys.Enter), key.Matches(msg,
 					keys.Escape):
@@ -172,7 +205,7 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				var cmd tea.Cmd
-				m.tableFilterInput, cmd = m.tableFilterInput.Update(msg)
+				m.tableFilter, cmd = m.tableFilter.Update(msg)
 				m.applyTableSearch()
 				return m, cmd
 			} else {
@@ -188,7 +221,7 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focusSearch()
 					return m, textinput.Blink
 				case key.Matches(msg, keys.Clear):
-					m.tableFilterInput.Reset()
+					m.tableFilter.Reset()
 					m.applyTableSearch()
 					return m, nil
 				case key.Matches(msg, keys.Switch):
@@ -212,30 +245,6 @@ func (m *library) View() string {
 		return m.prompt.View()
 	}
 
-	height := style.CalculateAppHeight() - 2
-	width := cache.Get[int](cache.TerminalWidth)
-	libraryViewWidth := width - 6
-	categoryPaneWidth := libraryViewWidth * 20 / 100
-	passwordPaneWidth := libraryViewWidth * 60 / 100
-
-	libraryContainer := lipgloss.NewStyle().
-		Height(height).
-		Align(lipgloss.Center, lipgloss.Top).
-		Render
-	searchBox := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(style.ColorGray).
-		Align(lipgloss.Left, lipgloss.Center).
-		PaddingLeft(1).
-		PaddingRight(1)
-	paneBorder := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		Align(lipgloss.Center, lipgloss.Top).
-		Height(height).
-		MaxHeight(height + 2).
-		Padding(1).
-		Render
-
 	if m.err != nil {
 		errTitle := lipgloss.NewStyle().
 			Bold(true).
@@ -245,7 +254,7 @@ func (m *library) View() string {
 			Italic(true).
 			Foreground(style.ColorRedPale).
 			Render(m.err.Error())
-		return libraryContainer(
+		return m.container.Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
 				errTitle,
@@ -254,61 +263,43 @@ func (m *library) View() string {
 		)
 	}
 
-	// Category Pane
-	categoryTitleStyle := unfocusedTitleStyle
+	// List Pane -- Category List
+	listTitleStyle := unfocusedTitleStyle
 	if m.focusedPane == lipgloss.Left {
-		categoryTitleStyle = titleStyle
+		listTitleStyle = titleStyle
 	}
-	categoryTitle := categoryTitleStyle.Render("Category")
-	listHeight := 2 * len(m.list.Items())
-	listHeight = min(listHeight, height-18)
-	m.list.SetSize(categoryPaneWidth, listHeight)
-	listView := m.list.View()
-	listWidth := lipgloss.Width(listView)
-	searchBox = searchBox.Width(listWidth)
-	if m.listFilterInput.Focused() {
+	categoryTitle := listTitleStyle.Render("Category")
+	searchBox = searchBox.Width(m.list.Width())
+	if m.listFilter.Focused() {
 		searchBox = searchBox.BorderForeground(style.ColorPurple)
 	}
-	categoryView := paneBorder(lipgloss.JoinVertical(
+	categoryView := m.listPaneBorder.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		categoryTitle,
-		searchBox.Render(m.listFilterInput.View()),
-		listView,
+		searchBox.Render(m.listFilter.View()),
+		m.list.View(),
 	))
 
-	// Password Pane
-	passwordTitleStyle := unfocusedTitleStyle
+	// Table Pane -- Password Table
+	tableTitleStyle := unfocusedTitleStyle
 	if m.focusedPane == lipgloss.Right {
-		passwordTitleStyle = titleStyle
+		tableTitleStyle = titleStyle
 	}
-	passwordTitle := passwordTitleStyle.Render("Password")
-	tableHeight := 1*len(m.table.Rows()) + tableColumnHeight
-	tableHeight = min(height-8, tableHeight)
-	m.table.SetHeight(tableHeight)
-	m.table.SetWidth(passwordPaneWidth)
-	m.table.SetColumns(newTableColumns(passwordPaneWidth))
-	tableView := m.table.View()
-	if len(m.table.Rows()) == 0 {
-		tableView = lipgloss.JoinVertical(
-			lipgloss.Center,
-			tableView,
-			"No passwords found.",
-		)
-	}
+	tableTitle := tableTitleStyle.Render("Password")
 	searchBox = searchBox.Width(m.table.Width() - 4)
-	if m.tableFilterInput.Focused() {
+	if m.tableFilter.Focused() {
 		searchBox = searchBox.BorderForeground(style.ColorPurple)
 	}
-	passwordView := paneBorder(
+	passwordView := m.tablePaneBorder.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Left,
-			passwordTitle,
-			searchBox.Render(m.tableFilterInput.View()),
-			tableView,
+			tableTitle,
+			searchBox.Render(m.tableFilter.View()),
+			m.table.View(),
 		),
 	)
 
-	// Help
+	// Help View
 	var helpView string
 	if m.focusedPane == lipgloss.Left {
 		helpView = m.listHelp.View(keys)
@@ -318,7 +309,7 @@ func (m *library) View() string {
 
 	return lipgloss.JoinVertical(
 		lipgloss.Center,
-		libraryContainer(
+		m.container.Render(
 			lipgloss.JoinHorizontal(
 				lipgloss.Top,
 				categoryView,
@@ -333,7 +324,34 @@ func (m *library) View() string {
 //////////// PRIVATE /////////////
 //////////////////////////////////
 
-// Table
+// calculateDimension calculates the width and height for
+// both list and table components based on the given.
+// It also sets values for dynamic styles.
+func (m *library) calculateDimension(width int, height int) {
+	m.height = height
+	m.width = width
+
+	listWidth := width * 20 / 100
+	listPaneWidth := listWidth + 4
+	m.list.SetHeight(height - 8)
+	m.list.SetWidth(listWidth)
+	m.listFilter.Width = listWidth - 11
+	m.listPaneBorder = m.listPaneBorder.Width(listPaneWidth).
+		Height(height).
+		MaxHeight(height + 2)
+
+	tableWidth := width * 60 / 100
+	tablePaneWidth := tableWidth + 4
+	m.table.SetHeight(height - 8)
+	m.table.SetWidth(tableWidth)
+	m.table.SetColumns(newTableColumns(tableWidth))
+	m.tableFilter.Width = tableWidth - 11
+	m.tablePaneBorder = m.tablePaneBorder.Width(tablePaneWidth).
+		Height(height).
+		MaxHeight(height + 2)
+
+	m.container = m.container.Height(height)
+}
 
 func (m *library) setRows() {
 	category := m.list.SelectedItem().(entity.Category)
@@ -361,8 +379,6 @@ func (m *library) setRows() {
 	m.table.SetCursor(0)
 }
 
-// List
-
 func (m *library) setItems() {
 	m.list.SetItems(
 		lo.Map(m.categories,
@@ -372,8 +388,6 @@ func (m *library) setItems() {
 		),
 	)
 }
-
-// Focus
 
 func (m *library) setKeys() {
 	switch m.focusedPane {
@@ -390,46 +404,44 @@ func (m *library) switchFocus(pos lipgloss.Position) {
 	switch pos {
 	case lipgloss.Left:
 		m.table.Blur()
-		m.delegate.SetFocus(true)
+		m.list.Focus()
 		m.table.SetStyles(newTableStyle(false))
 	case lipgloss.Right:
 		m.table.Focus()
-		m.delegate.SetFocus(false)
+		m.list.Blur()
 		m.table.SetStyles(newTableStyle(true))
 	}
 }
 
-// Search
-
 func (m *library) focusSearch() {
 	switch m.focusedPane {
 	case lipgloss.Left:
-		m.listFilterInput.Focus()
-		m.listFilterInput.Cursor.SetMode(cursor.CursorBlink)
+		m.listFilter.Focus()
+		m.listFilter.Cursor.SetMode(cursor.CursorBlink)
 	case lipgloss.Right:
-		m.tableFilterInput.Focus()
-		m.tableFilterInput.Cursor.SetMode(cursor.CursorBlink)
+		m.tableFilter.Focus()
+		m.tableFilter.Cursor.SetMode(cursor.CursorBlink)
 	}
 }
 
 func (m *library) blurSearch() {
 	switch m.focusedPane {
 	case lipgloss.Left:
-		m.listFilterInput.Blur()
-		m.listFilterInput.Cursor.SetMode(cursor.CursorStatic)
+		m.listFilter.Blur()
+		m.listFilter.Cursor.SetMode(cursor.CursorStatic)
 	case lipgloss.Right:
-		m.tableFilterInput.Blur()
-		m.tableFilterInput.Cursor.SetMode(cursor.CursorStatic)
+		m.tableFilter.Blur()
+		m.tableFilter.Cursor.SetMode(cursor.CursorStatic)
 	}
 }
 
 func (m *library) applyTableSearch() {
 	m.setRows() // TODO: Optimize this, perhaps store the current rows in *library...
-	if m.tableFilterInput.Value() == "" {
+	if m.tableFilter.Value() == "" {
 		return
 	}
 
-	ranks := fuzzy.Find(m.tableFilterInput.Value(),
+	ranks := fuzzy.Find(m.tableFilter.Value(),
 		lo.Map(m.table.Rows(), func(row table.Row, _ int) string {
 			return row[2] // This is the name...
 		}))
@@ -448,11 +460,11 @@ func (m *library) applyTableSearch() {
 
 func (m *library) applyListSearch() {
 	m.setItems()
-	if m.listFilterInput.Value() == "" {
+	if m.listFilter.Value() == "" {
 		return
 	}
 
-	ranks := fuzzy.Find(m.listFilterInput.Value(),
+	ranks := fuzzy.Find(m.listFilter.Value(),
 		lo.Map(m.list.Items(), func(item list.Item, _ int) string {
 			return item.(entity.Category).Name
 		}))
@@ -466,10 +478,8 @@ func (m *library) applyListSearch() {
 			return lo.Contains(filteredIndexes, index)
 		})
 	m.list.SetItems(filteredItems)
-	m.list.Select(0) // Select the highest ranked item
+	m.list.SetIndex(0) // Select the highest ranked item
 }
-
-// Prompt
 
 func (m *library) closePrompt() {
 	m.prompt = nil
