@@ -192,6 +192,9 @@ func (m Model) Rows() []Row {
 
 // SelectedRow returns the row where the cursor is at
 func (m Model) SelectedRow() Row {
+	if m.currIdx > len(m.rows)-1 {
+		return nil
+	}
 	return m.rows[m.currIdx]
 }
 
