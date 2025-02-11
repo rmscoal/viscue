@@ -30,7 +30,11 @@ func init() {
 func Get[T any](key Key) T {
 	mutex.RLock()
 	defer mutex.RUnlock()
-	return memStore[key].(T)
+	if value, exists := memStore[key]; exists {
+		return value.(T)
+	}
+	var zero T
+	return zero
 }
 
 // Set inserts key value pair to the cache. It replaces existing pair.
