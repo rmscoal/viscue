@@ -11,11 +11,9 @@ func NewSpinner() spinner.Model {
 	s := spinner.New(
 		spinner.WithSpinner(spinner.Jump),
 		spinner.WithStyle(lipgloss.NewStyle().
-			Foreground(ColorTerminalGreen),
+			Foreground(ColorPurple),
 		),
 	)
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(ColorTerminalGreen)
 
 	return s
 }

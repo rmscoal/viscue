@@ -220,7 +220,8 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case key.Matches(msg, keys.Add):
 					m.newPasswordPrompt()
 					return m, m.prompt.Init()
-				case key.Matches(msg, keys.Edit):
+				case key.Matches(msg, keys.Enter),
+					key.Matches(msg, keys.Edit):
 					m.editPasswordPrompt()
 					return m, m.prompt.Init()
 				case key.Matches(msg, keys.Delete):

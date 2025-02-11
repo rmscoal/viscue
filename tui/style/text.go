@@ -9,8 +9,9 @@ import (
 var (
 	ErrorText = lipgloss.NewStyle().MarginTop(2).Foreground(ColorRed).Render
 
-	TitleContainer = lipgloss.NewStyle().Align(lipgloss.Center, lipgloss.Center).
-			MarginBottom(2)
+	TitleContainer = lipgloss.NewStyle().Align(lipgloss.Center,
+		lipgloss.Center).
+		MarginBottom(2)
 	Title = lipgloss.NewStyle().
 		Align(lipgloss.Center, lipgloss.Center).
 		Foreground(ColorPurple).
@@ -25,8 +26,6 @@ var (
 			Foreground(ColorPurplePale).
 			SetString(`Your personal terminal password manager.`).Render()
 	HeaderHeight = lipgloss.Height(Title) + lipgloss.Height(SubTitle) + 2
-
-	GreetingText = lipgloss.NewStyle().Italic(true).Foreground(ColorMilk)
 
 	HelpContainer = lipgloss.NewStyle().
 			Align(lipgloss.Center, lipgloss.Center).

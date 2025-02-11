@@ -12,13 +12,13 @@ var (
 	_defaultHeaderStyle = lipgloss.NewStyle().
 				BorderStyle(lipgloss.NormalBorder()).
 				BorderBottom(true).
-				BorderForeground(style.ColorLight).
+				BorderForeground(style.ColorNormal).
 				PaddingLeft(1).
 				Bold(true)
-	_defaultCellStyle         = lipgloss.NewStyle().PaddingLeft(1).Foreground(style.ColorLight)
+	_defaultCellStyle         = lipgloss.NewStyle().PaddingLeft(1).Foreground(style.ColorNormal)
 	_defaultBlurredCellStyle  = _defaultCellStyle.Foreground(style.ColorGray)
 	_defaultSelectedCellStyle = lipgloss.NewStyle().
-					Foreground(style.ColorLight).
+					Foreground(style.ColorNormal).
 					Background(style.ColorPurple)
 	_defaultBlurredSelectedCellStyle = _defaultSelectedCellStyle.Background(style.ColorGray)
 )

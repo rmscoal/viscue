@@ -17,12 +17,14 @@ import (
 
 var (
 	DefaultItemStyle = lipgloss.NewStyle().
-				Foreground(style.ColorLight).
 				PaddingLeft(1).
 				Bold(true)
-	DefaultSelectedItemStyle        = DefaultItemStyle.Background(style.ColorPurple)
-	DefaultBlurredItemStyle         = DefaultItemStyle.Foreground(style.ColorGray)
-	DefaultBlurredSelectedItemStyle = DefaultItemStyle.Background(style.ColorGray)
+	DefaultSelectedItemStyle = DefaultItemStyle.Background(style.ColorPurple)
+	DefaultBlurredItemStyle  = lipgloss.NewStyle().
+					PaddingLeft(1).
+					Foreground(style.ColorGray).
+					Bold(true)
+	DefaultBlurredSelectedItemStyle = DefaultBlurredItemStyle.Background(style.ColorGray)
 )
 
 type Styles struct {

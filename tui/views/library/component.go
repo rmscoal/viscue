@@ -12,7 +12,7 @@ import (
 var (
 	titleStyle = lipgloss.NewStyle().
 			Background(style.ColorPurple).
-			Foreground(style.ColorBlack).
+			Foreground(style.ColorNormal).
 			MarginBottom(1).
 			Padding(0, 1)
 	unfocusedTitleStyle = titleStyle.Background(style.ColorGray)
