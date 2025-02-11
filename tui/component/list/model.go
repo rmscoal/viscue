@@ -173,6 +173,9 @@ func (m Model) Index() int {
 }
 
 func (m Model) SelectedItem() Item {
+	if len(m.items) == 0 {
+		return nil
+	}
 	return m.items[m.currIdx]
 }
 
