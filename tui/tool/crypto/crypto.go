@@ -39,7 +39,7 @@ func GenerateAccountUnlockKey(password, secretKey, username string) (
 	salt = string(saltByte)
 
 	// Create AUC from password and salt.
-	aucByte := pbkdf2.Key([]byte(password), []byte(salt), 100000, 32,
+	aucByte := pbkdf2.Key([]byte(password), []byte(salt), 870000, 32,
 		sha256.New)
 
 	// Trim our secret key to match the length of AUC, so we can XOR both.
