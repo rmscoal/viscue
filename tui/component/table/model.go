@@ -160,8 +160,9 @@ func (m Model) renderRows() string {
 	var rows []string
 	for rowIndex, row := range m.rows {
 		var cells []string
-		for columnIndex, cell := range row {
-			// BUG: Panic when column empty (?)
+		for columnIndex := 0; columnIndex < len(row) &&
+			columnIndex < len(m.columns); columnIndex++ {
+			cell := row[columnIndex]
 			columnWidth := m.columns[columnIndex].Width
 			if columnWidth <= 0 {
 				continue
