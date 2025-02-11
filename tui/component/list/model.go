@@ -17,9 +17,9 @@ import (
 
 var (
 	DefaultItemStyle = lipgloss.NewStyle().
-		Foreground(style.ColorLight).
-		PaddingLeft(1).
-		Bold(true)
+				Foreground(style.ColorLight).
+				PaddingLeft(1).
+				Bold(true)
 	DefaultSelectedItemStyle        = DefaultItemStyle.Background(style.ColorPurple)
 	DefaultBlurredItemStyle         = DefaultItemStyle.Foreground(style.ColorGray)
 	DefaultBlurredSelectedItemStyle = DefaultItemStyle.Background(style.ColorGray)

@@ -133,7 +133,7 @@ func NewPasswordFromTableRow(row table.Row) (Password, error) {
 		Name:     row[2],
 		Email:    row[3],
 		Username: row[4],
-		Password: row[6],
+		Password: row[5],
 	}
 	id, err := strconv.ParseInt(row[0], 10, 64)
 	if err != nil {
