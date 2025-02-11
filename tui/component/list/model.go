@@ -8,12 +8,38 @@ package list
 import (
 	"strings"
 
+	"viscue/tui/style"
+
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
-	"github.com/samber/lo"
 )
+
+var (
+	DefaultItemStyle = lipgloss.NewStyle().
+		Foreground(style.ColorLight).
+		PaddingLeft(1).
+		Bold(true)
+	DefaultSelectedItemStyle        = DefaultItemStyle.Background(style.ColorPurple)
+	DefaultBlurredItemStyle         = DefaultItemStyle.Foreground(style.ColorGray)
+	DefaultBlurredSelectedItemStyle = DefaultItemStyle.Background(style.ColorGray)
+)
+
+type Styles struct {
+	Item                lipgloss.Style
+	SelectedItem        lipgloss.Style
+	BlurredItem         lipgloss.Style
+	BlurredSelectedItem lipgloss.Style
+}
+
+func DefaultStyles() Styles {
+	return Styles{
+		Item:                DefaultItemStyle,
+		SelectedItem:        DefaultSelectedItemStyle,
+		BlurredItem:         DefaultBlurredItemStyle,
+		BlurredSelectedItem: DefaultBlurredSelectedItemStyle,
+	}
+}
 
 type Model struct {
 	Styles Styles
@@ -27,10 +53,7 @@ type Model struct {
 func New(opts ...Option) Model {
 	m := Model{
 		Styles: DefaultStyles(),
-		vp: viewport.New(
-			_defaultViewportWidth,
-			_defaultViewportHeight,
-		),
+		vp:     viewport.New(0, 0),
 	}
 	for _, opt := range opts {
 		opt(&m)
@@ -45,14 +68,14 @@ type Option func(*Model)
 // WithHeight sets the height of the list viewport
 func WithHeight(height int) Option {
 	return func(m *Model) {
-		m.vp.Height = height
+		m.SetHeight(height)
 	}
 }
 
 // WithWidth sets the width of the list viewport
 func WithWidth(width int) Option {
 	return func(m *Model) {
-		m.vp.Width = width
+		m.SetWidth(width)
 	}
 }
 
@@ -65,7 +88,11 @@ func WithItems(items []Item) Option {
 
 func WithFocused(focused bool) Option {
 	return func(m *Model) {
-		m.focused = focused
+		if focused {
+			m.Focus()
+		} else {
+			m.Blur()
+		}
 	}
 }
 
@@ -97,7 +124,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	// Render our items
+	m.vp.SetContent(m.renderItems())
+	return m.vp.View()
+}
+
+type Item interface {
+	String() string
+}
+
+func (m *Model) SetItems(items []Item) {
+	m.items = items
+	m.vp.SetContent(m.renderItems())
+	m.currIdx = 0
+	m.vp.SetYOffset(0)
+}
+
+func (m Model) Items() []Item {
+	return m.items
+}
+
+func (m Model) renderItems() string {
 	var content strings.Builder
 	for idx, item := range m.items {
 		str := item.String()
@@ -119,28 +165,7 @@ func (m Model) View() string {
 		content.WriteString(fn(str))
 		content.WriteRune('\n')
 	}
-	m.vp.SetContent(content.String())
-
-	return m.vp.View()
-}
-
-type Item interface {
-	String() string
-}
-
-func (m *Model) SetItems(items []Item) {
-	m.items = items
-	m.currIdx = 0
-	m.vp.SetYOffset(0)
-	log.Debug("(*list.Model).SetItems: setting items", "items", items)
-}
-
-func (m Model) Items() []Item {
-	return m.items
-}
-
-func (m *Model) SetIndex(idx int) {
-	m.currIdx = idx
+	return content.String()
 }
 
 func (m Model) Index() int {
@@ -149,52 +174,6 @@ func (m Model) Index() int {
 
 func (m Model) SelectedItem() Item {
 	return m.items[m.currIdx]
-}
-
-// Up scrolls the list model upward
-func (m *Model) Up() {
-	length := len(m.items)
-	if length == 0 || m.currIdx <= 0 {
-		return
-	}
-
-	m.currIdx--
-	currItem := m.items[m.currIdx]
-	currItemHeight := lipgloss.Height(m.Styles.SelectedItem.Render(currItem.String()))
-	currItemYPos := lo.Sum(lo.FilterMap(m.items,
-		func(item Item, index int) (int, bool) {
-			fn := m.Styles.Item
-			if index == m.currIdx {
-				fn = m.Styles.SelectedItem
-			}
-			return lipgloss.Height(fn.Render(item.String())), index <= m.currIdx
-		}))
-	for currItemYPos <= m.vp.YOffset {
-		m.vp.SetYOffset(m.vp.YOffset - currItemHeight)
-	}
-}
-
-// Down scrolls the list model downward
-func (m *Model) Down() {
-	length := len(m.items)
-	if length == 0 || m.currIdx >= length-1 {
-		return
-	}
-
-	m.currIdx++
-	currItem := m.items[m.currIdx]
-	currItemHeight := lipgloss.Height(m.Styles.SelectedItem.Render(currItem.String()))
-	currItemYPos := lo.Sum(lo.FilterMap(m.items,
-		func(item Item, index int) (int, bool) {
-			fn := m.Styles.Item
-			if index == m.currIdx {
-				fn = m.Styles.SelectedItem
-			}
-			return lipgloss.Height(fn.Render(item.String())), index <= m.currIdx
-		}))
-	for currItemYPos > m.vp.Height+m.vp.YOffset {
-		m.vp.SetYOffset(m.vp.YOffset + currItemHeight)
-	}
 }
 
 func (m *Model) Focus() {
@@ -218,13 +197,49 @@ func (m Model) Height() int {
 }
 
 func (m *Model) SetWidth(width int) {
+	m.Styles.Item.UnsetWidth()
+	m.Styles.SelectedItem.UnsetWidth()
+	m.Styles.BlurredItem.UnsetWidth()
+	m.Styles.BlurredSelectedItem.UnsetWidth()
+
 	m.Styles.Item = m.Styles.Item.Width(width)
 	m.Styles.SelectedItem = m.Styles.SelectedItem.Width(width)
 	m.Styles.BlurredItem = m.Styles.BlurredItem.Width(width)
 	m.Styles.BlurredSelectedItem = m.Styles.BlurredSelectedItem.Width(width)
+
 	m.vp.Width = width
 }
 
 func (m Model) Width() int {
 	return m.vp.Width
+}
+
+func (m *Model) Up() {
+	length := len(m.items)
+	if length == 0 || m.currIdx <= 0 {
+		return
+	}
+
+	m.currIdx--
+	// The height of the current row is currIdx + 1,
+	// assuming all rows have height of 1
+	currItemYPos := m.currIdx + 1
+	for currItemYPos <= m.vp.YOffset && !m.vp.AtTop() {
+		m.vp.LineUp(1)
+	}
+}
+
+func (m *Model) Down() {
+	length := len(m.items)
+	if length == 0 || m.currIdx >= length-1 {
+		return
+	}
+
+	m.currIdx++
+	// The height of the current row is currIdx + 1,
+	// assuming all rows have height of 1
+	currItemYPos := m.currIdx + 1
+	for currItemYPos > m.vp.Height+m.vp.YOffset && !m.vp.AtBottom() {
+		m.vp.LineDown(1)
+	}
 }

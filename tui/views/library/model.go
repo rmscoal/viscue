@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"viscue/tui/component/list"
+	"viscue/tui/component/table"
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
@@ -14,7 +15,6 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -61,7 +61,7 @@ func New(db *sqlx.DB) tea.Model {
 		Align(lipgloss.Center, lipgloss.Top)
 	paneBorder := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		Align(lipgloss.Center, lipgloss.Top).
+		Align(lipgloss.Top, lipgloss.Top).
 		Height(height).
 		MaxHeight(height + 2).
 		Padding(1)
@@ -73,8 +73,16 @@ func New(db *sqlx.DB) tea.Model {
 		listHelp:   help.New(),
 		listFilter: newSearch("Search category..."),
 		table: table.New(
+			table.WithColumns(
+				[]table.Column{
+					{Title: "Id", Width: 0},
+					{Title: "CategoryId", Width: 0},
+					{Title: "Name", Width: 24},
+					{Title: "Email", Width: 24},
+					{Title: "Username", Width: 24},
+					{Title: "Password", Width: 0},
+				}),
 			table.WithFocused(true),
-			table.WithStyles(newTableStyle(true)),
 		),
 		tableHelp:   help.New(),
 		tableFilter: newSearch("Search password..."),
@@ -108,7 +116,6 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.passwords = msg.Passwords
 		m.loaded = true
 		m.setItems()
-		m.list.SetIndex(0)
 		m.setRows()
 		return m, nil
 	case prompt.DataSubmittedMsg[entity.Password]:
@@ -272,6 +279,8 @@ func (m *library) View() string {
 	searchBox = searchBox.Width(m.list.Width())
 	if m.listFilter.Focused() {
 		searchBox = searchBox.BorderForeground(style.ColorPurple)
+	} else {
+		searchBox = searchBox.BorderForeground(style.ColorGray)
 	}
 	categoryView := m.listPaneBorder.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -289,6 +298,8 @@ func (m *library) View() string {
 	searchBox = searchBox.Width(m.table.Width() - 4)
 	if m.tableFilter.Focused() {
 		searchBox = searchBox.BorderForeground(style.ColorPurple)
+	} else {
+		searchBox = searchBox.BorderForeground(style.ColorGray)
 	}
 	passwordView := m.tablePaneBorder.Render(
 		lipgloss.JoinVertical(
@@ -342,9 +353,10 @@ func (m *library) calculateDimension(width int, height int) {
 
 	tableWidth := width * 60 / 100
 	tablePaneWidth := tableWidth + 4
+	columnWidth := (tableWidth - 8) / 3
 	m.table.SetHeight(height - 8)
 	m.table.SetWidth(tableWidth)
-	m.table.SetColumns(newTableColumns(tableWidth))
+	m.table.SetColumnsWidth(0, 0, columnWidth, columnWidth, columnWidth, 0)
 	m.tableFilter.Width = tableWidth - 11
 	m.tablePaneBorder = m.tablePaneBorder.Width(tablePaneWidth).
 		Height(height).
@@ -376,7 +388,6 @@ func (m *library) setRows() {
 			})
 	}
 	m.table.SetRows(rows)
-	m.table.SetCursor(0)
 }
 
 func (m *library) setItems() {
@@ -405,11 +416,9 @@ func (m *library) switchFocus(pos lipgloss.Position) {
 	case lipgloss.Left:
 		m.table.Blur()
 		m.list.Focus()
-		m.table.SetStyles(newTableStyle(false))
 	case lipgloss.Right:
 		m.table.Focus()
 		m.list.Blur()
-		m.table.SetStyles(newTableStyle(true))
 	}
 }
 
@@ -455,7 +464,6 @@ func (m *library) applyTableSearch() {
 			return lo.Contains(filteredIndexes, index)
 		})
 	m.table.SetRows(filteredRows)
-	m.table.SetCursor(0) // Select the highest ranked row
 }
 
 func (m *library) applyListSearch() {
@@ -478,7 +486,6 @@ func (m *library) applyListSearch() {
 			return lo.Contains(filteredIndexes, index)
 		})
 	m.list.SetItems(filteredItems)
-	m.list.SetIndex(0) // Select the highest ranked item
 }
 
 func (m *library) closePrompt() {

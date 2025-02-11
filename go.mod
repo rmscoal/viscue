@@ -9,12 +9,16 @@ require (
 	github.com/charmbracelet/log v0.4.0
 	github.com/charmbracelet/x/term v0.2.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
+	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/qustavo/sqlhooks/v2 v2.1.0
+	github.com/sahilm/fuzzy v0.1.1
+	github.com/samber/lo v1.48.0
 	github.com/stretchr/testify v1.10.0
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/crypto v0.32.0
+	golang.org/x/sync v0.10.0
 )
 
 require (
@@ -27,7 +31,6 @@ require (
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/golang-migrate/migrate/v4 v4.17.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
@@ -39,11 +42,8 @@ require (
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/sahilm/fuzzy v0.1.1 // indirect
-	github.com/samber/lo v1.48.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
-	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

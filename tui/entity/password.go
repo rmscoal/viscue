@@ -11,7 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
+	"viscue/tui/component/table"
+
 	"github.com/charmbracelet/log"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"golang.org/x/sync/errgroup"
@@ -122,7 +123,7 @@ func (password Password) ToTableRow() table.Row {
 		strconv.FormatInt(password.CategoryId.Int64, 10), // CategoryId (hidden)
 		password.Name,
 		password.Email,
-		username + "\n",
+		username,
 		password.Password, // Password (hidden)
 	}
 }
