@@ -315,7 +315,7 @@ func (m *library) View() string {
 	if m.focusedPane == lipgloss.Left {
 		helpView = m.listHelp.View(keys)
 	} else {
-		helpView = m.listHelp.View(keys)
+		helpView = m.tableHelp.View(keys)
 	}
 
 	return lipgloss.JoinVertical(
