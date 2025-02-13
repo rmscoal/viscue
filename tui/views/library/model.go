@@ -3,8 +3,10 @@ package library
 import (
 	"database/sql"
 	"sort"
+	"time"
 
 	"viscue/tui/component/list"
+	"viscue/tui/component/notification"
 	"viscue/tui/component/table"
 	"viscue/tui/entity"
 	"viscue/tui/style"
@@ -22,6 +24,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/sahilm/fuzzy"
 	"github.com/samber/lo"
+	"golang.design/x/clipboard"
 )
 
 type library struct {
@@ -31,13 +34,14 @@ type library struct {
 	prompt tea.Model
 
 	// Components
-	list        list.Model
-	listHelp    help.Model
-	listFilter  textinput.Model
-	table       table.Model
-	tableHelp   help.Model
-	tableFilter textinput.Model
-	spinner     spinner.Model
+	list         list.Model
+	listHelp     help.Model
+	listFilter   textinput.Model
+	table        table.Model
+	tableHelp    help.Model
+	tableFilter  textinput.Model
+	notification notification.Model
+	spinner      spinner.Model
 
 	// Dynamic styles
 	container       lipgloss.Style
@@ -86,7 +90,11 @@ func New(db *sqlx.DB) tea.Model {
 		),
 		tableHelp:   help.New(),
 		tableFilter: newSearch("Search password..."),
-		spinner:     style.NewSpinner(),
+		notification: notification.New(
+			notification.WithDuration(2*time.Second),
+			notification.WithStyle(lipgloss.NewStyle().Foreground(style.ColorNormal).Bold(true).Padding(1).Align(lipgloss.Center)),
+		),
+		spinner: style.NewSpinner(),
 		// Dynamic styles
 		container:       container,
 		listPaneBorder:  paneBorder,
@@ -97,12 +105,16 @@ func New(db *sqlx.DB) tea.Model {
 		focusedPane: lipgloss.Right,
 	}
 
-	model.calculateDimension(width, height)
+	model.calculateDimension()
 
 	return model
 }
 
 func (m *library) Init() tea.Cmd {
+	if err := clipboard.Init(); err != nil {
+		log.Warn("failed to initialize clipboard", "err", err)
+	}
+
 	return tea.Sequence(m.spinner.Tick, m.load)
 }
 
@@ -129,6 +141,10 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case prompt.CloseMsg:
 		m.closePrompt()
 		return m, nil
+	case notification.TickMsg:
+		var cmd tea.Cmd
+		m.notification, cmd = m.notification.Update(msg)
+		return m, cmd
 	case spinner.TickMsg:
 		if m.loaded {
 			return m, nil
@@ -150,7 +166,8 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		// NOTE: The main app has saved this size in cache
 		// before passing to its submodels.
-		m.calculateDimension(msg.Width-6, style.CalculateAppHeight()-2)
+		m.height, m.width = msg.Width-6, style.CalculateAppHeight()-2
+		m.calculateDimension()
 		return m, nil
 	case tea.KeyMsg:
 		if m.prompt != nil {
@@ -228,6 +245,9 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case key.Matches(msg, keys.Search):
 					m.focusSearch()
 					return m, textinput.Blink
+				case key.Matches(msg, keys.Copy):
+					cmd := m.copyPasswordToClipboard()
+					return m, cmd
 				case key.Matches(msg, keys.Clear):
 					m.tableFilter.Reset()
 					m.applyTableSearch()
@@ -311,12 +331,15 @@ func (m *library) View() string {
 		),
 	)
 
-	// Help View
-	var helpView string
-	if m.focusedPane == lipgloss.Left {
-		helpView = m.listHelp.View(keys)
+	// Notif or Help View
+	var footerView string
+	if m.notification.Visible() {
+		// If notif is visible, we render it instead
+		footerView = m.notification.View()
+	} else if m.focusedPane == lipgloss.Left {
+		footerView = style.HelpContainer(m.listHelp.View(keys))
 	} else {
-		helpView = m.tableHelp.View(keys)
+		footerView = style.HelpContainer(m.tableHelp.View(keys))
 	}
 
 	return lipgloss.JoinVertical(
@@ -328,7 +351,7 @@ func (m *library) View() string {
 				passwordView,
 			),
 		),
-		style.HelpContainer(helpView),
+		footerView,
 	)
 }
 
@@ -339,31 +362,28 @@ func (m *library) View() string {
 // calculateDimension calculates the width and height for
 // both list and table components based on the given.
 // It also sets values for dynamic styles.
-func (m *library) calculateDimension(width int, height int) {
-	m.height = height
-	m.width = width
-
-	listWidth := width * 20 / 100
+func (m *library) calculateDimension() {
+	listWidth := m.width * 20 / 100
 	listPaneWidth := listWidth + 4
-	m.list.SetHeight(height - 8)
+	m.list.SetHeight(m.height - 8)
 	m.list.SetWidth(listWidth)
 	m.listFilter.Width = listWidth - 11
 	m.listPaneBorder = m.listPaneBorder.Width(listPaneWidth).
-		Height(height).
-		MaxHeight(height + 2)
+		Height(m.height).
+		MaxHeight(m.height + 2)
 
-	tableWidth := width * 60 / 100
+	tableWidth := m.width * 60 / 100
 	tablePaneWidth := tableWidth + 4
 	columnWidth := (tableWidth - 8) / 3
-	m.table.SetHeight(height - 8)
+	m.table.SetHeight(m.height - 8)
 	m.table.SetWidth(tableWidth)
 	m.table.SetColumnsWidth(0, 0, columnWidth, columnWidth, columnWidth, 0)
 	m.tableFilter.Width = tableWidth - 11
 	m.tablePaneBorder = m.tablePaneBorder.Width(tablePaneWidth).
-		Height(height).
-		MaxHeight(height + 2)
+		Height(m.height).
+		MaxHeight(m.height + 2)
 
-	m.container = m.container.Height(height)
+	m.container = m.container.Height(m.height)
 }
 
 func (m *library) setRows() {
@@ -405,8 +425,10 @@ func (m *library) setKeys() {
 	switch m.focusedPane {
 	case lipgloss.Left:
 		keys.Switch = focusRight
+		keys.Copy = key.Binding{}
 	case lipgloss.Right:
 		keys.Switch = focusLeft
+		keys.Copy = copyClipboard
 	}
 }
 
@@ -421,6 +443,16 @@ func (m *library) switchFocus(pos lipgloss.Position) {
 		m.table.Focus()
 		m.list.Blur()
 	}
+}
+
+func (m *library) copyPasswordToClipboard() tea.Cmd {
+	pass, err := entity.NewPasswordFromTableRow(m.table.SelectedRow())
+	if err != nil {
+		return m.notification.Show(err.Error())
+	}
+
+	clipboard.Write(clipboard.FmtText, []byte(pass.Password))
+	return m.notification.Show("Copied to clipboard")
 }
 
 func (m *library) focusSearch() {
