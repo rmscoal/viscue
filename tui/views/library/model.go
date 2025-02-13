@@ -111,6 +111,10 @@ func New(db *sqlx.DB) tea.Model {
 }
 
 func (m *library) Init() tea.Cmd {
+	if err := clipboard.Init(); err != nil {
+		log.Warn("failed to initialize clipboard", "err", err)
+	}
+
 	return tea.Sequence(m.spinner.Tick, m.load)
 }
 
@@ -445,11 +449,6 @@ func (m *library) copyPasswordToClipboard() tea.Cmd {
 	pass, err := entity.NewPasswordFromTableRow(m.table.SelectedRow())
 	if err != nil {
 		return m.notification.Show(err.Error())
-	}
-
-	err = clipboard.Init()
-	if err != nil {
-		return m.notification.Show("Failed to copy to clipboard")
 	}
 
 	clipboard.Write(clipboard.FmtText, []byte(pass.Password))
