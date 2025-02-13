@@ -4,18 +4,18 @@ import "github.com/charmbracelet/bubbles/key"
 
 type keyMap struct {
 	Up, Down, Next, Prev, Switch, Help,
-	Add, Edit, Delete,
+	Add, Edit, Delete, Copy,
 	Search, Clear, Escape, Enter key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Up, k.Down, k.Switch, k.Search, k.Help}
+	return []key.Binding{k.Up, k.Down, k.Copy, k.Switch, k.Search, k.Help}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Next, k.Prev, k.Switch}, // first column
-		{k.Add, k.Edit, k.Delete},                // second column
+		{k.Add, k.Edit, k.Delete, k.Copy},        // second column
 		{k.Search, k.Clear, k.Escape},            // third column
 	}
 }
@@ -28,6 +28,11 @@ var focusRight = key.NewBinding(
 var focusLeft = key.NewBinding(
 	key.WithKeys("ctrl+h"),
 	key.WithHelp("ctrl+h", "focus left"),
+)
+
+var copyClipboard = key.NewBinding(
+	key.WithKeys("y"),
+	key.WithHelp("y", "copy to clipboard"),
 )
 
 var keys = keyMap{
