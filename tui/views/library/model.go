@@ -11,7 +11,7 @@ import (
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
-	"viscue/tui/views/library/prompt"
+	"viscue/tui/views/library/submodel/prompt"
 
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/help"
@@ -132,11 +132,11 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case prompt.DataSubmittedMsg[entity.Password]:
 		defer m.closePrompt()
-		m.appendPassword(msg.Model)
+		m.appendPassword(msg.Data)
 		return m, nil
 	case prompt.DataSubmittedMsg[entity.Category]:
 		defer m.closePrompt()
-		m.appendCategory(msg.Model)
+		m.appendCategory(msg.Data)
 		return m, nil
 	case prompt.CloseMsg:
 		m.closePrompt()
@@ -192,11 +192,13 @@ func (m *library) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				switch {
 				case key.Matches(msg, keys.Add):
-					m.prompt = prompt.NewCategory(m.db, entity.Category{})
+					m.prompt = prompt.New(m.db, entity.Category{},
+						prompt.WithTitle("Add new category"))
 					return m, m.prompt.Init()
 				case key.Matches(msg, keys.Edit):
 					selectedCategory := m.list.SelectedItem().(entity.Category)
-					m.prompt = prompt.NewCategory(m.db, selectedCategory)
+					m.prompt = prompt.New(m.db, selectedCategory,
+						prompt.WithTitle("Edit category"))
 					return m, m.prompt.Init()
 				case key.Matches(msg, keys.Delete):
 				case key.Matches(msg, keys.Search):
@@ -533,9 +535,9 @@ func (m *library) newPasswordPrompt() {
 	if categoryId.Int64 == 0 || categoryId.Int64 == -1 {
 		categoryId = sql.NullInt64{Int64: 0, Valid: false}
 	}
-	m.prompt = prompt.NewPassword(m.db, entity.Password{
+	m.prompt = prompt.New(m.db, entity.Password{
 		CategoryId: categoryId,
-	})
+	}, prompt.WithTitle("Add new password"))
 }
 
 func (m *library) editPasswordPrompt() {
@@ -543,7 +545,7 @@ func (m *library) editPasswordPrompt() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	m.prompt = prompt.NewPassword(m.db, password)
+	m.prompt = prompt.New(m.db, password, prompt.WithTitle("Edit password"))
 }
 
 func (m *library) appendPassword(pw entity.Password) {

@@ -23,21 +23,17 @@ func NewSpinner() spinner.Model {
 var ButtonStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FFF7DB")).
 	Background(lipgloss.Color("#888B7E")).
-	Padding(0, 3).
+	Padding(0, 2).
 	MarginTop(1)
-var Button = ButtonStyle.Render
 
 var ActiveButtonStyle = ButtonStyle.
 	Foreground(lipgloss.Color("#FFF7DB")).
 	Background(lipgloss.Color("#F25D94")).
 	MarginRight(2).
 	Underline(true)
-var ActiveButton = ActiveButtonStyle.Render
 
-// Dialog
+// Text Input
 
-var DialogStyle = lipgloss.NewStyle().
-	Border(lipgloss.RoundedBorder()).
-	BorderForeground(lipgloss.Color("#874BFD")).
-	Padding(1, 0)
-var Dialog = DialogStyle.Render
+var TextInputPromptStyle = lipgloss.NewStyle().
+	PaddingRight(1).
+	AlignHorizontal(lipgloss.Left)
