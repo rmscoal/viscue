@@ -5,12 +5,12 @@ import (
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/views/library/message"
+	"viscue/tui/views/library/submodel/prompt"
 
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 )
@@ -53,7 +53,6 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case DataLoadedMsg:
-		log.Debug("DataLoadedMsg received for Sidebar")
 		m.categories = msg.Data
 		m.list.SetItems(
 			lo.Map(m.categories,
@@ -70,6 +69,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.list.Blur()
 			return m, nil
+		}
+	case prompt.DeleteConfirmedMsg[entity.Category]:
+		m.categories = lo.Filter(m.categories,
+			func(category entity.Category, index int) bool {
+				return category.Id != msg.Payload.Id
+			})
+		m.list.SetItems(
+			lo.Map(m.categories,
+				func(category entity.Category, _ int) list.Item {
+					return category
+				},
+			),
+		)
+		return m, func() tea.Msg {
+			return message.ClosePromptMsg[entity.Password]{}
+		}
+	case prompt.DataSubmittedMsg[entity.Category]:
+		m.append(msg.Data)
+		return m, func() tea.Msg {
+			return message.ClosePromptMsg[entity.Password]{}
 		}
 	case cursor.BlinkMsg:
 		var cmd tea.Cmd

@@ -3,8 +3,9 @@ package prompt
 import "github.com/charmbracelet/bubbles/key"
 
 type KeyMap struct {
-	Cycle key.Binding
-	Close key.Binding
+	Cycle  key.Binding
+	Close  key.Binding
+	Submit key.Binding
 
 	// For passwords prompt
 	TogglePasswordVisibility key.Binding
@@ -28,6 +29,10 @@ var Keys = KeyMap{
 	Close: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "cancel & close"),
+	),
+	Submit: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "submit"),
 	),
 	TogglePasswordVisibility: key.NewBinding(
 		key.WithKeys("ctrl+p"),

@@ -11,6 +11,10 @@ import (
 )
 
 func (m *Model) cycleFocus(msg tea.KeyMsg) {
+	if m.isDeletion {
+		return
+	}
+
 	length := len(m.fields) // Including button
 	if _, idx, found := lo.FindIndexOf(m.fields,
 		func(item textinput.Model) bool {
@@ -30,21 +34,13 @@ func (m *Model) cycleFocus(msg tea.KeyMsg) {
 		fallthrough
 	case m.pointer < length && m.pointer >= 0:
 		m.fields[m.pointer].Focus()
-		m.button = m.button.
-			UnsetForeground().
-			UnsetBackground().
-			Foreground(style.ButtonStyle.GetForeground()).
-			Background(style.ButtonStyle.GetBackground())
+		m.blurSubmitButton()
 	case m.pointer < 0:
 		m.pointer = length
 		fallthrough
 	case m.pointer == length:
 		m.fields[m.pointer-1].Blur()
-		m.button = m.button.
-			UnsetForeground().
-			UnsetBackground().
-			Foreground(style.ActiveButtonStyle.GetForeground()).
-			Background(style.ActiveButtonStyle.GetBackground())
+		m.focusSubmitButton()
 	}
 }
 
@@ -106,4 +102,24 @@ func (m *Model) getCategories() error {
 	_ = rows.Close()
 	m.categories = categories
 	return nil
+}
+
+func (m *Model) focusSubmitButton() {
+	m.button = m.button.
+		UnsetForeground().
+		UnsetBackground().
+		Foreground(style.ActiveButtonStyle.GetForeground()).
+		Background(style.ActiveButtonStyle.GetBackground())
+}
+
+func (m *Model) blurSubmitButton() {
+	m.button = m.button.
+		UnsetForeground().
+		UnsetBackground().
+		Foreground(style.ButtonStyle.GetForeground()).
+		Background(style.ButtonStyle.GetBackground())
+}
+
+func (m Model) isButtonFocused() bool {
+	return m.pointer == len(m.fields)
 }

@@ -5,12 +5,12 @@ import (
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/views/library/message"
+	"viscue/tui/views/library/submodel/prompt"
 
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 	"golang.design/x/clipboard"
@@ -71,16 +71,24 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case DataLoadedMsg:
-		log.Debug("DataLoadedMsg received in shelf Model")
 		m.passwords = msg.Data
-		m.table.SetRows(
-			lo.Map(m.passwords,
-				func(password entity.Password, index int) table.Row {
-					return password.ToTableRow()
-				},
-			),
-		)
+		m.sync()
 		return m, nil
+	case prompt.DataSubmittedMsg[entity.Password]:
+		m.append(msg.Data)
+		return m, func() tea.Msg {
+			return message.ClosePromptMsg[entity.Password]{}
+		}
+	case prompt.DeleteConfirmedMsg[entity.Password]:
+		m.passwords = lo.Filter(m.passwords,
+			func(item entity.Password, index int) bool {
+				return item.Id != msg.Payload.Id
+			},
+		)
+		m.sync()
+		return m, func() tea.Msg {
+			return message.ClosePromptMsg[entity.Password]{}
+		}
 	case message.CategorySelectedMsg:
 		m.selectedCategoryId = int64(msg)
 		m.sync()

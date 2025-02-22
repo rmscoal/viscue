@@ -37,25 +37,27 @@ func (m *Model) filter() {
 }
 
 func (m *Model) sync() {
+	var rows []table.Row
 	switch m.selectedCategoryId {
 	case 0:
-		lo.Map(m.passwords,
+		rows = lo.Map(m.passwords,
 			func(password entity.Password, index int) table.Row {
 				return password.ToTableRow()
 			})
 	case -1:
-		lo.FilterMap(m.passwords,
+		rows = lo.FilterMap(m.passwords,
 			func(password entity.Password, index int) (table.Row, bool) {
 				return password.ToTableRow(), !password.CategoryId.Valid
 			})
 	default:
-		lo.FilterMap(m.passwords,
+		rows = lo.FilterMap(m.passwords,
 			func(password entity.Password, index int) (table.Row, bool) {
 				return password.ToTableRow(),
 					password.CategoryId.Int64 == m.selectedCategoryId &&
 						password.CategoryId.Valid
 			})
 	}
+	m.table.SetRows(rows)
 }
 
 func (m *Model) calculateDimension() {
@@ -71,4 +73,20 @@ func (m *Model) calculateDimension() {
 	m.paneBorder = m.paneBorder.Height(appHeight).
 		MaxHeight(appHeight + 2).
 		Width(paneWidth)
+}
+
+func (m *Model) append(payload entity.Password) {
+	_, index, found := lo.FindIndexOf(m.passwords,
+		func(password entity.Password) bool {
+			return password.Id == payload.Id
+		})
+	if !found {
+		m.passwords = append(m.passwords, payload)
+		sort.Slice(m.passwords, func(i, j int) bool {
+			return m.passwords[i].Id < m.passwords[j].Id
+		})
+	} else {
+		m.passwords[index] = payload
+	}
+	m.sync()
 }

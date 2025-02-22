@@ -55,9 +55,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.SwitchFocusMsg:
 		m.focusedSubmodel = int8(msg)
 	case message.OpenPromptMsg[entity.Password]:
-		m.prompt = prompt.New(m.db, msg.Payload)
+		m.prompt = prompt.New(m.db, msg.Payload,
+			prompt.IsDeletion(msg.IsDeletion))
 	case message.OpenPromptMsg[entity.Category]:
-		m.prompt = prompt.New(m.db, msg.Payload)
+		m.prompt = prompt.New(m.db, msg.Payload,
+			prompt.IsDeletion(msg.IsDeletion))
 	case message.ClosePromptMsg[entity.Category]:
 		m.prompt = nil
 		return m, func() tea.Msg {

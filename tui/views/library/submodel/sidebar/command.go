@@ -78,6 +78,10 @@ func (m Model) CategorySelectedMsg() tea.Msg {
 
 func (m Model) DeleteCategoryPromptMsg() tea.Cmd {
 	category := m.list.SelectedItem().(entity.Category)
+	if category.Id == 0 || category.Id == -1 {
+		// TODO: Show notification, cannot delete...
+		return nil
+	}
 	return tea.Sequence(
 		func() tea.Msg {
 			return message.OpenPromptMsg[entity.Category]{

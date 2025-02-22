@@ -1,6 +1,8 @@
 package prompt
 
 import (
+	"fmt"
+
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
@@ -76,6 +78,17 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 
 	switch payload := payload.(type) {
 	case entity.Category:
+		if payload.Id != 0 {
+			if m.isDeletion {
+				m.title = "Delete Category"
+				m.focusSubmitButton()
+				break
+			} else {
+				m.title = "Edit Category"
+			}
+		} else {
+			m.title = "Create Category"
+		}
 		m.fields = make([]textinput.Model, 1)
 		m.fields[0] = textinput.New()
 		m.fields[0].Prompt = "Name"
@@ -84,16 +97,19 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 		m.fields[0].Focus()
 		m.fields[0].SetValue(payload.Name)
 		m.fields[0].Width = min(m.availableWidth-2, minimumTextInputWidth)
+	case entity.Password:
 		if payload.Id != 0 {
 			if m.isDeletion {
-				m.title = "Delete Category"
+				m.title = "Delete Password"
+				m.focusSubmitButton()
+				break
 			} else {
-				m.title = "Edit Category"
+				m.title = "Edit Password"
 			}
 		} else {
-			m.title = "Create Category"
+			m.title = "Create Password"
 		}
-	case entity.Password:
+
 		if err := m.getCategories(); err != nil {
 			// 	TODO: Handler error
 		}
@@ -129,16 +145,6 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 			m.fields[i].Cursor.SetMode(cursor.CursorBlink)
 			m.fields[i].Width = min(m.availableWidth-2, minimumTextInputWidth)
 		}
-
-		if payload.Id != 0 {
-			if m.isDeletion {
-				m.title = "Delete Password"
-			} else {
-				m.title = "Edit Password"
-			}
-		} else {
-			m.title = "Create Password"
-		}
 	}
 
 	return m
@@ -158,6 +164,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case key.Matches(msg, Keys.Close):
 			return m, m.Close
+		case key.Matches(msg, Keys.Submit):
+			if m.isDeletion {
+				return m, m.Delete
+			} else if m.isButtonFocused() {
+				return m, m.Submit
+			}
 		case key.Matches(msg, Keys.TogglePasswordVisibility):
 			m.togglePasswordVisibility()
 			return m, nil
@@ -170,25 +182,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	textbox := textboxRenderer(
-		lipgloss.JoinVertical(
-			lipgloss.Center,
-			titleRenderer(m.title),
+	var view string
+	if m.isDeletion {
+		var subtext string
+		switch payload := m.payload.(type) {
+		case entity.Category:
+			subtext = fmt.Sprintf("Delete category: %s", payload.Name)
+		case entity.Password:
+			subtext = fmt.Sprintf("Delete password: %s", payload.Name)
+		}
+		view = textboxRenderer(
 			lipgloss.JoinVertical(
-				lipgloss.Left,
-				lo.Map(m.fields, func(item textinput.Model, index int) string {
-					return item.View()
-				})...,
+				lipgloss.Center,
+				subtext,
+				m.button.Render(),
 			),
-			m.button.Render(),
-		),
-	)
+		)
+	} else {
+		view = textboxRenderer(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				titleRenderer(m.title),
+				lipgloss.JoinVertical(
+					lipgloss.Left,
+					lo.Map(m.fields,
+						func(item textinput.Model, index int) string {
+							return item.View()
+						})...,
+				),
+				m.button.Render(),
+			),
+		)
+	}
 
 	return lipgloss.Place(
 		m.availableWidth,
 		m.availableHeight,
 		lipgloss.Center,
 		lipgloss.Center,
-		textbox,
+		view,
 	)
 }

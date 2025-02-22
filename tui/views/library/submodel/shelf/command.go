@@ -52,8 +52,7 @@ func (m Model) EditPasswordPromptMsg() tea.Cmd {
 	return tea.Sequence(
 		func() tea.Msg {
 			return message.OpenPromptMsg[entity.Password]{
-				Payload:    password,
-				IsDeletion: true,
+				Payload: password,
 			}
 		},
 		func() tea.Msg {
