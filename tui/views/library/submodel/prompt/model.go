@@ -47,13 +47,14 @@ type Model struct {
 	availableHeight int
 	pointer         int
 	showPassword    bool
+	isDeletion      bool
 }
 
 type Option func(*Model)
 
-func WithTitle(title string) Option {
+func IsDeletion(boolean bool) Option {
 	return func(m *Model) {
-		m.title = title
+		m.isDeletion = boolean
 	}
 }
 

@@ -7,14 +7,20 @@ import (
 
 	"viscue/tui/entity"
 	"viscue/tui/tool/cache"
+	"viscue/tui/views/library/message"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type CloseMsg struct{}
-
 func (m Model) Close() tea.Msg {
-	return CloseMsg{}
+	switch m.payload.(type) {
+	case entity.Category:
+		return message.ClosePromptMsg[entity.Category]{}
+	case entity.Password:
+		return message.ClosePromptMsg[entity.Password]{}
+	default:
+		return nil
+	}
 }
 
 type DataSubmittedMsg[T any] struct {
@@ -90,7 +96,7 @@ func (m Model) buildPasswordEntity() entity.Password {
 	return entity.Password{
 		Id:         m.payload.(entity.Password).Id,
 		Name:       m.fields[0].Value(),
-		CategoryId: sql.NullInt64{},
+		CategoryId: sql.NullInt64{}, // TODO: Resolve this
 		Email:      m.fields[2].Value(),
 		Username:   m.fields[3].Value(),
 		Password:   m.fields[4].Value(),

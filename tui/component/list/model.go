@@ -19,12 +19,15 @@ var (
 	DefaultItemStyle = lipgloss.NewStyle().
 				PaddingLeft(1).
 				Bold(true)
-	DefaultSelectedItemStyle = DefaultItemStyle.Background(style.ColorPurple)
-	DefaultBlurredItemStyle  = lipgloss.NewStyle().
-					PaddingLeft(1).
-					Foreground(style.ColorGray).
-					Bold(true)
-	DefaultBlurredSelectedItemStyle = DefaultBlurredItemStyle.Background(style.ColorGray)
+	DefaultSelectedItemStyle = DefaultItemStyle.Background(style.ColorPurple).
+					Foreground(style.ColorNormal)
+	DefaultBlurredItemStyle = lipgloss.NewStyle().
+				PaddingLeft(1).
+				Foreground(style.ColorGray).
+				Bold(true)
+	DefaultBlurredSelectedItemStyle = DefaultBlurredItemStyle.
+					Background(style.ColorGray).
+					Foreground(style.ColorNormal)
 )
 
 type Styles struct {

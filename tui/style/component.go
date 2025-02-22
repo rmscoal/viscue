@@ -32,8 +32,14 @@ var ActiveButtonStyle = ButtonStyle.
 	MarginRight(2).
 	Underline(true)
 
-// Text Input
+// Text Input / Search Box
 
 var TextInputPromptStyle = lipgloss.NewStyle().
 	PaddingRight(1).
 	AlignHorizontal(lipgloss.Left)
+
+var SearchBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).
+	BorderForeground(ColorPurple).
+	Align(lipgloss.Left, lipgloss.Center).
+	PaddingLeft(1).
+	PaddingRight(1)

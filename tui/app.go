@@ -4,7 +4,6 @@ import (
 	"os"
 	"time"
 
-	"viscue/tui/event"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
 	"viscue/tui/tool/database"
@@ -54,13 +53,10 @@ func (m *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		}
-	case event.AppMessage:
-		switch msg {
-		case event.UserLoggedIn:
-			libraryView := library.New(m.db)
-			m.currentView = libraryView
-			return m, m.currentView.Init()
-		}
+	case login.Successful:
+		libraryView := library.New(m.db)
+		m.currentView = libraryView
+		return m, m.currentView.Init()
 	}
 
 PassToCurrentView:
@@ -72,11 +68,11 @@ PassToCurrentView:
 func (m *app) View() string {
 	width := cache.Get[int](cache.TerminalWidth)
 	canvas := lipgloss.NewStyle().Width(width).Render
-	header := style.TitleContainer.Width(width).Render(
+	header := style.LogoContainer.Width(width).Render(
 		lipgloss.JoinVertical(
 			lipgloss.Center,
-			style.Title,
-			style.SubTitle,
+			style.Logo,
+			style.SubLogo,
 		),
 	)
 

@@ -43,6 +43,10 @@ type Model struct {
 
 type TickMsg struct{}
 
+type ShowMsg struct {
+	Message string
+}
+
 func New(opts ...Option) Model {
 	m := Model{
 		Style: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).
@@ -84,10 +88,13 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case TickMsg:
 		m.Hide()
 		return m, nil
+	case ShowMsg:
+		cmd := m.Show(msg.Message)
+		return m, cmd
 	}
 	return m, nil
 }
