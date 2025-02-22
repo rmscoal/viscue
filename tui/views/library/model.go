@@ -90,23 +90,21 @@ func (m Model) View() string {
 	case 2:
 		helpView = style.HelpContainer(help.New().View(prompt.Keys))
 	}
+
+	var submodelView string
 	if m.prompt != nil {
-		return lipgloss.JoinVertical(
+		submodelView = m.prompt.View()
+	} else {
+		submodelView = lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			m.prompt.View(),
-			helpView,
+			m.sidebar.View(),
+			m.shelf.View(),
 		)
 	}
 
-	shelfView := m.shelf.View()
-	sidebarView := m.sidebar.View()
 	return lipgloss.JoinVertical(
 		lipgloss.Center,
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			sidebarView,
-			shelfView,
-		),
+		submodelView,
 		helpView,
 	)
 }

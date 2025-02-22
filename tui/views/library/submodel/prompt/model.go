@@ -70,6 +70,10 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 		availableHeight: appHeight,
 	}
 
+	for _, opt := range opts {
+		opt(&m)
+	}
+
 	switch payload := payload.(type) {
 	case entity.Category:
 		m.fields = make([]textinput.Model, 1)
@@ -80,6 +84,15 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 		m.fields[0].Focus()
 		m.fields[0].SetValue(payload.Name)
 		m.fields[0].Width = min(m.availableWidth-2, minimumTextInputWidth)
+		if payload.Id != 0 {
+			if m.isDeletion {
+				m.title = "Delete Category"
+			} else {
+				m.title = "Edit Category"
+			}
+		} else {
+			m.title = "Create Category"
+		}
 	case entity.Password:
 		if err := m.getCategories(); err != nil {
 			// 	TODO: Handler error
@@ -116,10 +129,16 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 			m.fields[i].Cursor.SetMode(cursor.CursorBlink)
 			m.fields[i].Width = min(m.availableWidth-2, minimumTextInputWidth)
 		}
-	}
 
-	for _, opt := range opts {
-		opt(&m)
+		if payload.Id != 0 {
+			if m.isDeletion {
+				m.title = "Delete Password"
+			} else {
+				m.title = "Edit Password"
+			}
+		} else {
+			m.title = "Create Password"
+		}
 	}
 
 	return m
