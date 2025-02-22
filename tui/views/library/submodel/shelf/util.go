@@ -62,13 +62,13 @@ func (m *Model) calculateDimension() {
 	appHeight := style.CalculateAppHeight() - 2
 	appWidth := cache.Get[int](cache.TerminalWidth) - 6
 	shelfWidth := appWidth * 60 / 100
-	// tablePaneWidth := shelfWidth + 4
+	paneWidth := shelfWidth + 4
 	columnWidth := (shelfWidth - 8) / 3
 	m.table.SetHeight(appHeight - 8)
 	m.table.SetWidth(shelfWidth)
 	m.table.SetColumnsWidth(0, 0, columnWidth, columnWidth, columnWidth, 0)
 	m.search.Width = shelfWidth - 11
-	// m.tablePaneBorder = m.tablePaneBorder.Width(tablePaneWidth).
-	// 	Height(m.height).
-	// 	MaxHeight(m.height + 2)
+	m.paneBorder = m.paneBorder.Height(appHeight).
+		MaxHeight(appHeight + 2).
+		Width(paneWidth)
 }

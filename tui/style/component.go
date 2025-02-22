@@ -43,3 +43,10 @@ var SearchBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).
 	Align(lipgloss.Left, lipgloss.Center).
 	PaddingLeft(1).
 	PaddingRight(1)
+
+// Pane Border
+
+var PaneBorderStyle = lipgloss.NewStyle().
+	Border(lipgloss.RoundedBorder()).
+	Align(lipgloss.Top, lipgloss.Top).
+	Padding(1)

@@ -19,10 +19,16 @@ import (
 type Model struct {
 	db *sqlx.DB
 
-	search             textinput.Model
-	table              table.Model
+	// Component
+	search textinput.Model
+	table  table.Model
+
+	// State
 	passwords          []entity.Password
 	selectedCategoryId int64
+
+	// Style
+	paneBorder lipgloss.Style
 }
 
 func New(db *sqlx.DB) tea.Model {
@@ -46,6 +52,7 @@ func New(db *sqlx.DB) tea.Model {
 				}),
 			table.WithFocused(true),
 		),
+		paneBorder: style.PaneBorderStyle,
 	}
 
 	m.calculateDimension()
@@ -156,10 +163,10 @@ func (m Model) View() string {
 		searchBoxStyle = searchBoxStyle.BorderForeground(style.ColorPurple)
 	}
 
-	return lipgloss.JoinVertical(
+	return m.paneBorder.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		titleStyle.Render("Password"),
 		searchBoxStyle.Render(m.search.View()),
 		m.table.View(),
-	)
+	))
 }

@@ -2,11 +2,13 @@ package library
 
 import (
 	"viscue/tui/entity"
+	"viscue/tui/style"
 	"viscue/tui/views/library/message"
 	"viscue/tui/views/library/submodel/prompt"
 	"viscue/tui/views/library/submodel/shelf"
 	"viscue/tui/views/library/submodel/sidebar"
 
+	"github.com/charmbracelet/bubbles/help"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jmoiron/sqlx"
@@ -79,15 +81,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	var helpView string
+	switch m.focusedSubmodel {
+	case 0:
+		helpView = style.HelpContainer(help.New().View(sidebar.Keys))
+	case 1:
+		helpView = style.HelpContainer(help.New().View(shelf.Keys))
+	case 2:
+		helpView = style.HelpContainer(help.New().View(prompt.Keys))
+	}
 	if m.prompt != nil {
-		return m.prompt.View()
+		return lipgloss.JoinVertical(
+			lipgloss.Top,
+			m.prompt.View(),
+			helpView,
+		)
 	}
 
 	shelfView := m.shelf.View()
 	sidebarView := m.sidebar.View()
-	return lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		sidebarView,
-		shelfView,
+	return lipgloss.JoinVertical(
+		lipgloss.Center,
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			sidebarView,
+			shelfView,
+		),
+		helpView,
 	)
 }

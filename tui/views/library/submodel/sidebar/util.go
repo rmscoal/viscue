@@ -41,11 +41,11 @@ func (m *Model) calculateDimension() {
 	appHeight := style.CalculateAppHeight() - 2
 	appWidth := cache.Get[int](cache.TerminalWidth) - 6
 	sidebarWidth := appWidth * 20 / 100
-	// listPaneWidth := sidebarWidth + 4
+	paneWidth := sidebarWidth + 4
 	m.list.SetHeight(appHeight - 8)
 	m.list.SetWidth(sidebarWidth)
 	m.search.Width = sidebarWidth - 11
-	// m.listPaneBorder = m.listPaneBorder.Width(listPaneWidth).
-	// 	Height(m.height).
-	// 	MaxHeight(m.height + 2)
+	m.paneBorder = m.paneBorder.Height(appHeight).
+		MaxHeight(appHeight + 2).
+		Width(paneWidth)
 }

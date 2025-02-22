@@ -2,7 +2,7 @@ package prompt
 
 import "github.com/charmbracelet/bubbles/key"
 
-type keymap struct {
+type KeyMap struct {
 	Cycle key.Binding
 	Close key.Binding
 
@@ -10,17 +10,17 @@ type keymap struct {
 	TogglePasswordVisibility key.Binding
 }
 
-func (k keymap) ShortHelp() []key.Binding {
+func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{k.Cycle}
 }
 
-func (k keymap) FullHelp() [][]key.Binding {
+func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Cycle},
 	}
 }
 
-var HelpKeys = keymap{
+var Keys = KeyMap{
 	Cycle: key.NewBinding(
 		key.WithKeys("tab", "shift+tab"),
 		key.WithHelp("tab", "cycle fields"),

@@ -18,9 +18,15 @@ import (
 type Model struct {
 	db *sqlx.DB
 
-	search     textinput.Model
-	list       list.Model
+	// Component
+	search textinput.Model
+	list   list.Model
+
+	// State
 	categories []entity.Category
+
+	// 	Style
+	paneBorder lipgloss.Style
 }
 
 func New(db *sqlx.DB) tea.Model {
@@ -30,9 +36,10 @@ func New(db *sqlx.DB) tea.Model {
 	search.Cursor.SetMode(cursor.CursorStatic)
 
 	m := Model{
-		db:     db,
-		search: search,
-		list:   list.New(list.WithFocused(false)),
+		db:         db,
+		search:     search,
+		list:       list.New(list.WithFocused(false)),
+		paneBorder: style.PaneBorderStyle,
 	}
 
 	m.calculateDimension()
@@ -132,10 +139,10 @@ func (m Model) View() string {
 		searchBoxStyle = searchBoxStyle.BorderForeground(style.ColorPurple)
 	}
 
-	return lipgloss.JoinVertical(
+	return m.paneBorder.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		titleStyle.Render("Category"),
 		searchBoxStyle.Render(m.search.View()),
 		m.list.View(),
-	)
+	))
 }
