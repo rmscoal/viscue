@@ -36,7 +36,10 @@ var ActiveButtonStyle = ButtonStyle.
 
 var TextInputPromptStyle = lipgloss.NewStyle().
 	PaddingRight(1).
-	AlignHorizontal(lipgloss.Left)
+	AlignHorizontal(lipgloss.Left).
+	BorderStyle(lipgloss.Border{Right: ":"}).
+	BorderRight(true).
+	MarginRight(1)
 
 var SearchBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).
 	BorderForeground(ColorPurple).
