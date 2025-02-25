@@ -65,6 +65,7 @@ func (m Model) Init() tea.Cmd {
 		func() tea.Msg {
 			return clipboard.Init()
 		},
+		func() tea.Msg { return message.SetHelpKeysMsg{Keys: Keys} },
 	)
 }
 
@@ -96,7 +97,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.SwitchFocusMsg:
 		if msg == message.ShelfFocused {
 			m.table.Focus()
-			return m, nil
+			return m, func() tea.Msg {
+				return message.SetHelpKeysMsg{Keys: Keys}
+			}
 		} else {
 			m.table.Blur()
 			return m, nil

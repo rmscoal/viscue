@@ -1,11 +1,15 @@
 package prompt
 
 import (
+	"database/sql"
+	"strings"
+
 	"viscue/tui/entity"
 	"viscue/tui/style"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/samber/lo"
 )
@@ -63,6 +67,10 @@ func (m Model) updateTextInputs(msg tea.Msg) (Model, tea.Cmd) {
 	var commands []tea.Cmd
 	var cmd tea.Cmd
 	for i := range m.fields {
+		if m.isPasswordPrompt() && m.pointer == 1 {
+			// Disable category text input
+			continue
+		}
 		m.fields[i], cmd = m.fields[i].Update(msg)
 		commands = append(commands, cmd)
 	}
@@ -72,11 +80,9 @@ func (m Model) updateTextInputs(msg tea.Msg) (Model, tea.Cmd) {
 func (m *Model) getCategories() error {
 	query := `
 		WITH results AS (
-			SELECT 0 AS id, 'All' AS name, 1 AS sort_order
+			SELECT 0 AS id, 'None' AS name, 1 AS sort_order
 			UNION ALL
 			SELECT id, name, 2 AS sort_order FROM categories
-			UNION ALL
-			SELECT -1 AS id, 'Uncategorized' AS name, 3 AS sort_order
 			ORDER BY sort_order, name
 		)
 		SELECT id, name FROM results
@@ -122,4 +128,38 @@ func (m *Model) blurSubmitButton() {
 
 func (m Model) isButtonFocused() bool {
 	return m.pointer == len(m.fields)
+}
+
+func (m Model) isPasswordPrompt() bool {
+	_, ok := m.payload.(entity.Password)
+	return ok
+}
+
+func (m Model) textInputWidth() int {
+	return min(m.availableWidth-2, minimumTextInputWidth)
+}
+
+func (m *Model) setCategoryField(category entity.Category) {
+	if category.Id == 0 {
+		category.Name = "None"
+	}
+	categoryName := category.Name
+	tiWidth := m.textInputWidth()
+	if len(categoryName) >= tiWidth {
+		categoryName = categoryName[:tiWidth-4] + "…"
+	}
+	categoryName = lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		categoryName,
+		strings.Repeat(" ", 2),
+		"⌄",
+	)
+	m.fields[1].SetValue(categoryName)
+	m.fields[1].SetCursor(len(categoryName))
+	password := m.payload.(entity.Password)
+	password.CategoryId = sql.NullInt64{
+		Int64: category.Id,
+		Valid: category.Id != 0,
+	}
+	m.payload = password
 }

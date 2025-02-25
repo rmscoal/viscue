@@ -22,6 +22,11 @@ type Model struct {
 	sidebar tea.Model
 	shelf   tea.Model
 
+	// Component
+	help help.Model
+
+	// States
+	keys help.KeyMap
 	// focusedSubmodel indicates what submodel is currently focused
 	// `0` indicates sidebar
 	// `1` indicates shelf
@@ -34,6 +39,7 @@ func New(db *sqlx.DB) tea.Model {
 		db:              db,
 		shelf:           shelf.New(db),
 		sidebar:         sidebar.New(db),
+		help:            help.New(),
 		focusedSubmodel: 1,
 	}
 
@@ -62,14 +68,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			prompt.IsDeletion(msg.IsDeletion))
 	case message.ClosePromptMsg[entity.Category]:
 		m.prompt = nil
-		return m, func() tea.Msg {
-			return message.SidebarFocused
-		}
+		return m, tea.Sequence(
+			func() tea.Msg {
+				return message.SidebarFocused
+			},
+			func() tea.Msg {
+				return message.SetHelpKeysMsg{Keys: sidebar.Keys}
+			},
+		)
 	case message.ClosePromptMsg[entity.Password]:
 		m.prompt = nil
-		return m, func() tea.Msg {
-			return message.ShelfFocused
-		}
+		return m, tea.Sequence(
+			func() tea.Msg {
+				return message.ShelfFocused
+			},
+			func() tea.Msg {
+				return message.SetHelpKeysMsg{Keys: shelf.Keys}
+			},
+		)
+	case message.SetHelpKeysMsg:
+		m.keys = msg.Keys
+		return m, nil
 	}
 
 	cmds := make([]tea.Cmd, 3)
@@ -83,16 +102,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	var helpView string
-	switch m.focusedSubmodel {
-	case 0:
-		helpView = style.HelpContainer(help.New().View(sidebar.Keys))
-	case 1:
-		helpView = style.HelpContainer(help.New().View(shelf.Keys))
-	case 2:
-		helpView = style.HelpContainer(help.New().View(prompt.Keys))
-	}
-
 	var submodelView string
 	if m.prompt != nil {
 		submodelView = m.prompt.View()
@@ -104,6 +113,19 @@ func (m Model) View() string {
 		)
 	}
 
+	var helpView string
+	if m.keys != nil {
+		helpView = style.HelpContainer(m.help.View(m.keys))
+	} else {
+		switch m.focusedSubmodel {
+		case 0:
+			helpView = style.HelpContainer(help.New().View(sidebar.Keys))
+		case 1:
+			helpView = style.HelpContainer(help.New().View(shelf.Keys))
+		case 2:
+			helpView = style.HelpContainer(help.New().View(prompt.Keys))
+		}
+	}
 	return lipgloss.JoinVertical(
 		lipgloss.Center,
 		submodelView,

@@ -65,7 +65,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case message.SwitchFocusMsg:
 		if msg == message.SidebarFocused {
 			m.list.Focus()
-			return m, nil
+			return m, func() tea.Msg {
+				return message.SetHelpKeysMsg{
+					Keys: Keys,
+				}
+			}
 		} else {
 			m.list.Blur()
 			return m, nil

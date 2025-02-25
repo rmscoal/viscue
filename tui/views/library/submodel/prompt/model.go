@@ -3,9 +3,11 @@ package prompt
 import (
 	"fmt"
 
+	"viscue/tui/component/list"
 	"viscue/tui/entity"
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
+	"viscue/tui/views/library/message"
 
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/key"
@@ -42,6 +44,7 @@ type Model struct {
 
 	categories      []entity.Category
 	fields          []textinput.Model
+	list            list.Model
 	button          lipgloss.Style
 	payload         any // holds either Password or Category entity.
 	title           string
@@ -96,7 +99,7 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 		m.fields[0].Cursor.SetMode(cursor.CursorBlink)
 		m.fields[0].Focus()
 		m.fields[0].SetValue(payload.Name)
-		m.fields[0].Width = min(m.availableWidth-2, minimumTextInputWidth)
+		m.fields[0].Width = m.textInputWidth()
 	case entity.Password:
 		if payload.Id != 0 {
 			if m.isDeletion {
@@ -125,9 +128,9 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 		m.fields[0].SetValue(payload.Name)
 		m.fields[1].Prompt = "Category"
 		category, _ := lo.Find(m.categories, func(item entity.Category) bool {
-			return item.Id == payload.Id
+			return item.Id == payload.CategoryId.Int64
 		})
-		m.fields[1].SetValue(category.Name)
+		m.setCategoryField(category)
 		m.fields[2].Prompt = "Email"
 		m.fields[2].SetValue(payload.Email)
 		m.fields[3].Prompt = "Username"
@@ -143,8 +146,18 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 			}
 			m.fields[i].PromptStyle = style.TextInputPromptStyle.Width(10)
 			m.fields[i].Cursor.SetMode(cursor.CursorBlink)
-			m.fields[i].Width = min(m.availableWidth-2, minimumTextInputWidth)
+			m.fields[i].Width = m.textInputWidth()
 		}
+		m.list = list.New(list.WithFocused(false))
+		m.list.SetHeight(4)
+		m.list.SetWidth(m.fields[0].Width)
+		m.list.SetItems(
+			lo.Map(m.categories,
+				func(item entity.Category, index int) list.Item {
+					return item
+				},
+			),
+		)
 	}
 
 	return m
@@ -159,24 +172,74 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, Keys.Cycle):
-			m.cycleFocus(msg)
-			return m, nil
-		case key.Matches(msg, Keys.Close):
-			return m, m.Close
-		case key.Matches(msg, Keys.Submit):
-			if m.isDeletion {
+		case m.isDeletion:
+			switch {
+			case key.Matches(msg, Keys.Close):
+				return m, m.Close
+			case key.Matches(msg, Keys.Submit):
 				return m, m.Delete
-			} else if m.isButtonFocused() {
-				return m, m.Submit
 			}
-		case key.Matches(msg, Keys.TogglePasswordVisibility):
-			m.togglePasswordVisibility()
-			return m, nil
+		default:
+			switch {
+			case m.list.Focused():
+				switch {
+				case key.Matches(msg, DropdownKeys.Up),
+					key.Matches(msg, DropdownKeys.Down):
+					var cmd tea.Cmd
+					m.list, cmd = m.list.Update(msg)
+					return m, cmd
+				case key.Matches(msg, DropdownKeys.Select):
+					category := m.list.SelectedItem().(entity.Category)
+					m.setCategoryField(category)
+					fallthrough
+				case key.Matches(msg, DropdownKeys.Cancel):
+					m.list.Blur()
+					return m, func() tea.Msg {
+						return message.SetHelpKeysMsg{
+							Keys: Keys,
+						}
+					}
+				}
+			default:
+				switch {
+				case key.Matches(msg, Keys.Cycle):
+					m.cycleFocus(msg)
+					return m, nil
+				case key.Matches(msg, Keys.Close):
+					return m, m.Close
+				case key.Matches(msg, Keys.Submit):
+					if m.isButtonFocused() {
+						return m, m.Submit
+					}
+					if m.isPasswordPrompt() && m.pointer == 1 {
+						m.list.Focus()
+						return m, func() tea.Msg {
+							return message.SetHelpKeysMsg{
+								Keys: DropdownKeys,
+							}
+						}
+					}
+				case key.Matches(msg, Keys.TogglePasswordVisibility):
+					m.togglePasswordVisibility()
+					return m, nil
+				}
+			}
 		}
 		return m.updateTextInputs(msg)
 	case cursor.BlinkMsg:
 		return m.updateTextInputs(msg)
+	case message.OpenPromptMsg[entity.Password]:
+		return m, func() tea.Msg {
+			return message.SetHelpKeysMsg{
+				Keys: Keys,
+			}
+		}
+	case message.OpenPromptMsg[entity.Category]:
+		return m, func() tea.Msg {
+			return message.SetHelpKeysMsg{
+				Keys: Keys,
+			}
+		}
 	}
 	return m, nil
 }
@@ -199,16 +262,31 @@ func (m Model) View() string {
 			),
 		)
 	} else {
+		var textFields []string
+		if m.isPasswordPrompt() && m.list.Focused() {
+			textFields = lo.FilterMap(m.fields,
+				func(item textinput.Model, index int) (string, bool) {
+					return item.View(), index < 1
+				})
+			label := style.TextInputPromptStyle.Width(10).
+				Render("Category")
+			selectBox := lipgloss.JoinHorizontal(
+				lipgloss.Left, label, m.list.View(),
+			)
+			textFields = append(textFields, selectBox)
+		} else {
+			textFields = lo.Map(m.fields,
+				func(item textinput.Model, index int) string {
+					return item.View()
+				})
+		}
 		view = textboxRenderer(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
 				titleRenderer(m.title),
 				lipgloss.JoinVertical(
 					lipgloss.Left,
-					lo.Map(m.fields,
-						func(item textinput.Model, index int) string {
-							return item.View()
-						})...,
+					textFields...,
 				),
 				m.button.Render(),
 			),

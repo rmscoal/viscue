@@ -1,6 +1,10 @@
 package message
 
-import "viscue/tui/entity"
+import (
+	"viscue/tui/entity"
+
+	"github.com/charmbracelet/bubbles/help"
+)
 
 type SwitchFocusMsg int8
 
@@ -22,3 +26,7 @@ type ClosePromptMsg[T interface {
 }] struct{}
 
 type CategorySelectedMsg int64
+
+type SetHelpKeysMsg struct {
+	Keys help.KeyMap
+}

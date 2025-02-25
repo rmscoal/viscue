@@ -62,13 +62,17 @@ func (m Model) EditPasswordPromptMsg() tea.Cmd {
 }
 
 func (m Model) AddPasswordPromptMsg() tea.Cmd {
+	selectedCategoryId := m.selectedCategoryId
+	if selectedCategoryId <= 0 {
+		selectedCategoryId = 0
+	}
 	return tea.Sequence(
 		func() tea.Msg {
 			return message.OpenPromptMsg[entity.Password]{
 				Payload: entity.Password{
 					CategoryId: sql.NullInt64{
-						Int64: m.selectedCategoryId,
-						Valid: true,
+						Int64: selectedCategoryId,
+						Valid: selectedCategoryId > 0,
 					},
 				},
 			}

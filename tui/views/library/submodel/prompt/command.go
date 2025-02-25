@@ -2,7 +2,6 @@ package prompt
 
 import (
 	"crypto/rsa"
-	"database/sql"
 	"fmt"
 	"strings"
 
@@ -143,7 +142,7 @@ func (m Model) buildPasswordEntity() entity.Password {
 	return entity.Password{
 		Id:         m.payload.(entity.Password).Id,
 		Name:       m.fields[0].Value(),
-		CategoryId: sql.NullInt64{Valid: false}, // TODO: Resolve this
+		CategoryId: m.payload.(entity.Password).CategoryId,
 		Email:      strings.ToLower(m.fields[2].Value()),
 		Username:   m.fields[3].Value(),
 		Password:   m.fields[4].Value(),
