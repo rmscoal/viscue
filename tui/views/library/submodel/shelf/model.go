@@ -108,6 +108,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.search, cmd = m.search.Update(msg)
 		return m, cmd
+	case tea.WindowSizeMsg:
+		m.calculateDimension()
+		return m, nil
 	case tea.KeyMsg:
 		if !m.table.Focused() {
 			// Since our parent model passes msg to both
