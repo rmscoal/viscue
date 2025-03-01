@@ -226,6 +226,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case key.Matches(msg, Keys.TogglePasswordVisibility):
 					m.togglePasswordVisibility()
 					return m, nil
+				default:
+					m.err = nil // Clear existing error on type
 				}
 			}
 		}

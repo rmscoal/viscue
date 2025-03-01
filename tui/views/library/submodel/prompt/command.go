@@ -145,17 +145,17 @@ func (m Model) Delete() tea.Msg {
 func (m Model) buildCategoryEntity() entity.Category {
 	return entity.Category{
 		Id:   m.payload.(entity.Category).Id,
-		Name: m.fields[0].Value(),
+		Name: strings.TrimSpace(m.fields[0].Value()),
 	}
 }
 
 func (m Model) buildPasswordEntity() entity.Password {
 	return entity.Password{
 		Id:         m.payload.(entity.Password).Id,
-		Name:       m.fields[0].Value(),
+		Name:       strings.TrimSpace(m.fields[0].Value()),
 		CategoryId: m.payload.(entity.Password).CategoryId,
-		Email:      strings.ToLower(m.fields[2].Value()),
-		Username:   m.fields[3].Value(),
-		Password:   m.fields[4].Value(),
+		Email:      strings.ToLower(strings.TrimSpace(m.fields[2].Value())),
+		Username:   strings.TrimSpace(m.fields[3].Value()),
+		Password:   strings.TrimSpace(m.fields[4].Value()),
 	}
 }
