@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"viscue/tui/event"
 	"viscue/tui/tool/cache"
 	"viscue/tui/tool/crypto"
 
@@ -44,6 +43,10 @@ func (m *login) submit() tea.Msg {
 	}
 	return m.login()
 }
+
+// Successful is an event when the user has
+// successfully logged in.
+type Successful struct{}
 
 // signup is a tea.Cmd that registers anc account
 // The steps are as follows:
@@ -136,7 +139,7 @@ func (m *login) signup() tea.Msg {
 		return errors.New("something went wrong while saving to database")
 	}
 
-	return event.UserLoggedIn
+	return Successful{}
 }
 
 // login is a tea.Cmd that signs in user given by the username
@@ -205,5 +208,5 @@ func (m *login) login() tea.Msg {
 	cache.Set(cache.PrivateKey, privateKey)
 	cache.Set(cache.PublicKey, &privateKey.PublicKey)
 
-	return event.UserLoggedIn
+	return Successful{}
 }

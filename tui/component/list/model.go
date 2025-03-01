@@ -19,12 +19,15 @@ var (
 	DefaultItemStyle = lipgloss.NewStyle().
 				PaddingLeft(1).
 				Bold(true)
-	DefaultSelectedItemStyle = DefaultItemStyle.Background(style.ColorPurple)
-	DefaultBlurredItemStyle  = lipgloss.NewStyle().
-					PaddingLeft(1).
-					Foreground(style.ColorGray).
-					Bold(true)
-	DefaultBlurredSelectedItemStyle = DefaultBlurredItemStyle.Background(style.ColorGray)
+	DefaultSelectedItemStyle = DefaultItemStyle.Background(style.ColorPurple).
+					Foreground(style.ColorNormal)
+	DefaultBlurredItemStyle = lipgloss.NewStyle().
+				PaddingLeft(1).
+				Foreground(style.ColorGray).
+				Bold(true)
+	DefaultBlurredSelectedItemStyle = DefaultBlurredItemStyle.
+					Background(style.ColorGray).
+					Foreground(style.ColorNormal)
 )
 
 type Styles struct {
@@ -168,6 +171,15 @@ func (m Model) renderItems() string {
 		content.WriteRune('\n')
 	}
 	return content.String()
+}
+
+func (m *Model) SetIndex(idx int) {
+	for idx < m.currIdx {
+		m.Up()
+	}
+	for idx > m.currIdx {
+		m.Down()
+	}
 }
 
 func (m Model) Index() int {

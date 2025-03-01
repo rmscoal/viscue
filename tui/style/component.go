@@ -23,21 +23,33 @@ func NewSpinner() spinner.Model {
 var ButtonStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FFF7DB")).
 	Background(lipgloss.Color("#888B7E")).
-	Padding(0, 3).
+	Padding(0, 2).
 	MarginTop(1)
-var Button = ButtonStyle.Render
 
 var ActiveButtonStyle = ButtonStyle.
 	Foreground(lipgloss.Color("#FFF7DB")).
 	Background(lipgloss.Color("#F25D94")).
 	MarginRight(2).
 	Underline(true)
-var ActiveButton = ActiveButtonStyle.Render
 
-// Dialog
+// Text Input / Search Box
 
-var DialogStyle = lipgloss.NewStyle().
+var TextInputPromptStyle = lipgloss.NewStyle().
+	PaddingRight(1).
+	AlignHorizontal(lipgloss.Left).
+	BorderStyle(lipgloss.Border{Right: ":"}).
+	BorderRight(true).
+	MarginRight(1)
+
+var SearchBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).
+	BorderForeground(ColorPurple).
+	Align(lipgloss.Left, lipgloss.Center).
+	PaddingLeft(1).
+	PaddingRight(1)
+
+// Pane Border
+
+var PaneBorderStyle = lipgloss.NewStyle().
 	Border(lipgloss.RoundedBorder()).
-	BorderForeground(lipgloss.Color("#874BFD")).
-	Padding(1, 0)
-var Dialog = DialogStyle.Render
+	Align(lipgloss.Top, lipgloss.Top).
+	Padding(1)

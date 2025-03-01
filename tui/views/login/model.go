@@ -71,14 +71,16 @@ func New(db *sqlx.DB) tea.Model {
 	}
 
 	usernameInput := textinput.New()
-	usernameInput.Prompt = "Username: "
+	usernameInput.Prompt = "Username"
 	usernameInput.Cursor.SetMode(cursor.CursorBlink)
+	usernameInput.PromptStyle = style.TextInputPromptStyle.Width(10)
 	usernameInput.Focus()
 
 	passwordInput := textinput.New()
 	passwordInput.EchoMode = textinput.EchoPassword
 	passwordInput.EchoCharacter = '•'
-	passwordInput.Prompt = "Password: "
+	passwordInput.Prompt = "Password"
+	passwordInput.PromptStyle = style.TextInputPromptStyle.Width(10)
 	passwordInput.Cursor.SetMode(cursor.CursorBlink)
 
 	if username != "" {
@@ -120,6 +122,11 @@ func (m *login) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var commands [2]tea.Cmd
 			m.usernameInput, commands[0] = m.usernameInput.Update(msg)
 			m.passwordInput, commands[1] = m.passwordInput.Update(msg)
+			if len(m.usernameInput.Value()) >= 34 ||
+				len(m.passwordInput.Value()) >= 34 {
+				m.usernameInput.Width = 36
+				m.passwordInput.Width = 36
+			}
 			return m, tea.Batch(commands[:]...)
 		}
 	case cursor.BlinkMsg:
