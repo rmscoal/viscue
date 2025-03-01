@@ -24,6 +24,7 @@ func (m Model) LoadItems() tea.Msg {
 	if err != nil {
 		return nil
 	}
+	defer rows.Close()
 
 	privateKey := cache.Get[*rsa.PrivateKey](cache.PrivateKey)
 	var passwords []entity.Password
@@ -40,7 +41,6 @@ func (m Model) LoadItems() tea.Msg {
 		passwords = append(passwords, password)
 	}
 
-	_ = rows.Close()
 	return DataLoadedMsg{
 		Data: passwords,
 	}

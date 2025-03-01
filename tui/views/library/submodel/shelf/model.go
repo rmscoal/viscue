@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 	"golang.design/x/clipboard"
@@ -63,7 +64,10 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.LoadItems,
 		func() tea.Msg {
-			return clipboard.Init()
+			if err := clipboard.Init(); err != nil {
+				log.Error("clipboard init failed", "err", err)
+			}
+			return nil
 		},
 		func() tea.Msg { return message.SetHelpKeysMsg{Keys: Keys} },
 	)

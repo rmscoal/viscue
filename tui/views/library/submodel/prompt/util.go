@@ -95,6 +95,7 @@ func (m *Model) getCategories() error {
 			"err", err)
 		return err
 	}
+	defer rows.Close()
 
 	var categories []entity.Category
 	for rows.Next() {
@@ -107,7 +108,6 @@ func (m *Model) getCategories() error {
 		}
 		categories = append(categories, category)
 	}
-	_ = rows.Close()
 	m.categories = categories
 	return nil
 }
@@ -173,8 +173,14 @@ func handleUpsertCategoryError(err error) SubmitError {
 			switch {
 			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint):
 				return SubmitError(errors.New("seems like the category name is taken"))
+			default:
+				log.Error("prompt.handleUpsertCategory: unrecognized sqlite error",
+					"err", err)
+				return SubmitError(err)
 			}
 		}
+		log.Error("prompt.handleUpsertCategory: unrecognized error",
+			"err", err)
 		return SubmitError(err)
 	}
 	return nil
@@ -192,7 +198,13 @@ func handleUpsertPasswordError(err error) SubmitError {
 			return SubmitError(errors.New("the password's name has been taken in this category"))
 		case errors.Is(sqliteErr.Code, sqlite3.ErrIoErr):
 			return SubmitError(errors.New("database can't write to disk at the moment"))
+		default:
+			log.Error("prompt.handleUpsertPasswordError: unrecognized sqlite error",
+				"err", err)
+			return SubmitError(err)
 		}
 	}
+	log.Error("prompt.handleUpsertPasswordError: unrecognized error",
+		"err", err)
 	return SubmitError(err)
 }

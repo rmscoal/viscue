@@ -5,7 +5,6 @@ import (
 	"viscue/tui/views/library/message"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
 )
 
 type DataLoadedMsg struct {
@@ -27,6 +26,7 @@ func (m Model) LoadItems() tea.Msg {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 
 	var categories []entity.Category
 	for rows.Next() {
@@ -38,8 +38,6 @@ func (m Model) LoadItems() tea.Msg {
 		categories = append(categories, category)
 	}
 
-	_ = rows.Close()
-	log.Debug("(Model).LoadItems: retrieved categories", "items", categories)
 	return DataLoadedMsg{
 		Data: categories,
 	}

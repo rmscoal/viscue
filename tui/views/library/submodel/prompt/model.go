@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"errors"
 	"fmt"
 
 	"viscue/tui/component/list"
@@ -115,7 +116,7 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 		}
 
 		if err := m.getCategories(); err != nil {
-			// 	TODO: Handler error
+			m.err = errors.New("failed building categories dropdown")
 		}
 
 		m.fields = make([]textinput.Model, 5)
@@ -165,7 +166,6 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	// TODO: I think we have to load categories here...
 	return textinput.Blink
 }
 
