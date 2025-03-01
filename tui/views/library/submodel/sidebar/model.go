@@ -74,6 +74,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.list.Blur()
 			return m, nil
 		}
+	case message.ShouldReloadMsg:
+		return m, m.LoadItems
 	case prompt.DeleteConfirmedMsg[entity.Category]:
 		m.categories = lo.Filter(m.categories,
 			func(category entity.Category, index int) bool {
@@ -87,13 +89,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			),
 		)
 		return m, func() tea.Msg {
-			return message.ClosePromptMsg[entity.Password]{}
+			return message.ClosePromptMsg[entity.Category]{}
 		}
 	case prompt.DataSubmittedMsg[entity.Category]:
 		m.append(msg.Data)
-		return m, func() tea.Msg {
-			return message.ClosePromptMsg[entity.Password]{}
-		}
+		return m, tea.Sequence(
+			func() tea.Msg {
+				return message.ClosePromptMsg[entity.Category]{}
+			},
+			m.CategorySelectedMsg,
+		)
 	case cursor.BlinkMsg:
 		var cmd tea.Cmd
 		m.search, cmd = m.search.Update(msg)

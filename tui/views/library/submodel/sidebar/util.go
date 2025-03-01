@@ -75,4 +75,7 @@ func (m *Model) append(payload entity.Category) {
 			},
 		),
 	)
+	if index != -1 {
+		m.list.SetIndex(index)
+	}
 }

@@ -14,6 +14,8 @@ var (
 	PromptFocused  = SwitchFocusMsg(2)
 )
 
+type ShouldReloadMsg struct{}
+
 type OpenPromptMsg[T interface {
 	entity.Category | entity.Password
 }] struct {

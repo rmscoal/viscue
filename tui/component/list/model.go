@@ -173,6 +173,15 @@ func (m Model) renderItems() string {
 	return content.String()
 }
 
+func (m *Model) SetIndex(idx int) {
+	for idx < m.currIdx {
+		m.Up()
+	}
+	for idx > m.currIdx {
+		m.Down()
+	}
+}
+
 func (m Model) Index() int {
 	return m.currIdx
 }

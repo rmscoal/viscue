@@ -23,6 +23,8 @@ func (m Model) Close() tea.Msg {
 	}
 }
 
+type SubmitError error
+
 type DataSubmittedMsg[T any] struct {
 	Data T
 }
@@ -35,18 +37,24 @@ func (m Model) Submit() tea.Msg {
 			res, err := m.db.NamedExec(`INSERT INTO categories (name) VALUES (:name) RETURNING id`,
 				&payload)
 			if err != nil {
-				return err
+				return handleUpsertCategoryError(err)
 			}
 			id, err := res.LastInsertId()
 			if err != nil {
-				return err
+				return tea.Sequence(func() tea.Msg {
+					return message.ShouldReloadMsg{}
+				}, func() tea.Msg {
+					return message.ClosePromptMsg[entity.Category]{}
+				})()
 			}
 			payload.Id = id
 		} else {
-			_, err := m.db.NamedExec("UPDATE categories SET name = :category WHERE id = :id",
-				payload)
+			_, err := m.db.NamedExec(
+				"UPDATE categories SET name = :name WHERE id = :id",
+				payload,
+			)
 			if err != nil {
-				return err
+				return handleUpsertCategoryError(err)
 			}
 		}
 		return DataSubmittedMsg[entity.Category]{Data: payload}
@@ -55,7 +63,7 @@ func (m Model) Submit() tea.Msg {
 		publicKey := cache.Get[*rsa.PublicKey](cache.PublicKey)
 		enc := payload.Copy()
 		if err := enc.Encrypt(publicKey); err != nil {
-			return fmt.Errorf("failed to encrypt entity: %w", err)
+			return SubmitError(fmt.Errorf("failed to encrypt entity: %w", err))
 		}
 		if payload.Id == 0 {
 			res, err := m.db.NamedExec(
@@ -66,11 +74,15 @@ func (m Model) Submit() tea.Msg {
 				&enc,
 			)
 			if err != nil {
-				return err
+				return handleUpsertPasswordError(err)
 			}
 			id, err := res.LastInsertId()
 			if err != nil {
-				return err
+				return tea.Sequence(func() tea.Msg {
+					return message.ShouldReloadMsg{}
+				}, func() tea.Msg {
+					return message.ClosePromptMsg[entity.Password]{}
+				})()
 			}
 			payload.Id = id
 		} else {
@@ -85,12 +97,11 @@ func (m Model) Submit() tea.Msg {
 				&enc,
 			)
 			if err != nil {
-				return fmt.Errorf("failed to update password: %w", err)
+				return handleUpsertPasswordError(err)
 			}
 		}
 		return DataSubmittedMsg[entity.Password]{Data: payload}
 	}
-
 	return nil
 }
 

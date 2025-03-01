@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 
 	"viscue/tui/entity"
@@ -11,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/mattn/go-sqlite3"
 	"github.com/samber/lo"
 )
 
@@ -162,4 +164,35 @@ func (m *Model) setCategoryField(category entity.Category) {
 		Valid: category.Id != 0,
 	}
 	m.payload = password
+}
+
+func handleUpsertCategoryError(err error) SubmitError {
+	if err != nil {
+		sqliteErr, ok := err.(sqlite3.Error)
+		if ok {
+			switch {
+			case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint):
+				return SubmitError(errors.New("seems like the category name is taken"))
+			}
+		}
+		return SubmitError(err)
+	}
+	return nil
+}
+
+func handleUpsertPasswordError(err error) SubmitError {
+	if err == nil {
+		return nil
+	}
+
+	sqliteErr, ok := err.(sqlite3.Error)
+	if ok {
+		switch {
+		case errors.Is(sqliteErr.Code, sqlite3.ErrConstraint):
+			return SubmitError(errors.New("the password's name has been taken in this category"))
+		case errors.Is(sqliteErr.Code, sqlite3.ErrIoErr):
+			return SubmitError(errors.New("database can't write to disk at the moment"))
+		}
+	}
+	return SubmitError(err)
 }

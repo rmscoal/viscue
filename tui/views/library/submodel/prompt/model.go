@@ -47,6 +47,7 @@ type Model struct {
 	list            list.Model
 	button          lipgloss.Style
 	payload         any // holds either Password or Category entity.
+	err             error
 	title           string
 	availableWidth  int
 	availableHeight int
@@ -170,6 +171,9 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case SubmitError:
+		m.err = msg
+		return m, nil
 	case tea.KeyMsg:
 		switch {
 		case m.isDeletion:
@@ -290,6 +294,14 @@ func (m Model) View() string {
 				),
 				m.button.Render(),
 			),
+		)
+	}
+
+	if m.err != nil {
+		view = lipgloss.JoinVertical(
+			lipgloss.Center,
+			view,
+			style.ErrorText(m.err.Error()),
 		)
 	}
 

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS passwords(
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 );
 
-CREATE UNIQUE INDEX idx_name_per_category ON passwords (name, category_id);
+CREATE UNIQUE INDEX idx_name_per_category ON passwords (LOWER(name), category_id);
 
 CREATE TABLE IF NOT EXISTS configurations(
     key VARCHAR PRIMARY KEY,
