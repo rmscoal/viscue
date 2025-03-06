@@ -10,7 +10,21 @@ import (
 	"viscue/tui/views/library/message"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 )
+
+func (m Model) SendSetKeysMsg() tea.Msg {
+	if m.isPasswordPrompt() {
+		log.Debug("Masuk kesini guyss")
+		return message.SetHelpKeysMsg{
+			Keys: PasswordKeys,
+		}
+	} else {
+		return message.SetHelpKeysMsg{
+			Keys: BaseKeys,
+		}
+	}
+}
 
 func (m Model) Close() tea.Msg {
 	switch m.payload.(type) {

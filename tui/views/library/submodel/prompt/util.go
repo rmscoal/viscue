@@ -7,6 +7,7 @@ import (
 
 	"viscue/tui/entity"
 	"viscue/tui/style"
+	"viscue/tui/tool/crypto"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -51,12 +52,6 @@ func (m *Model) cycleFocus(msg tea.KeyMsg) {
 }
 
 func (m *Model) togglePasswordVisibility() {
-	if m.payload == nil {
-		return
-	} else if _, ok := m.payload.(entity.Password); !ok {
-		return
-	}
-
 	m.showPassword = !m.showPassword
 	if m.showPassword {
 		m.fields[4].EchoMode = textinput.EchoNormal
@@ -207,4 +202,15 @@ func handleUpsertPasswordError(err error) SubmitError {
 	log.Error("prompt.handleUpsertPasswordError: unrecognized error",
 		"err", err)
 	return SubmitError(err)
+}
+
+func (m *Model) generateRandomPassword() {
+	randomPassword, err := crypto.GenerateRandomPassword(24)
+	if err != nil {
+		log.Error("prompt.*Model.generateRandomPassword: failed", "err", err)
+		m.err = errors.New("failed to generate random password")
+	}
+	m.fields[4].SetValue(randomPassword)
+	m.showPassword = true
+	m.fields[4].EchoMode = textinput.EchoNormal
 }

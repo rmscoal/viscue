@@ -6,22 +6,21 @@ type KeyMap struct {
 	Cycle  key.Binding
 	Close  key.Binding
 	Submit key.Binding
-
-	// For passwords prompt
-	TogglePasswordVisibility key.Binding
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Cycle}
+	return []key.Binding{k.Cycle, k.Close, k.Submit}
 }
 
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Cycle},
+		{k.Close},
+		{k.Submit},
 	}
 }
 
-var Keys = KeyMap{
+var BaseKeys = KeyMap{
 	Cycle: key.NewBinding(
 		key.WithKeys("tab", "shift+tab"),
 		key.WithHelp("tab", "cycle fields"),
@@ -34,9 +33,34 @@ var Keys = KeyMap{
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "submit"),
 	),
+}
+
+type PasswordKeyMap struct {
+	KeyMap
+	TogglePasswordVisibility key.Binding
+	GeneratePassword         key.Binding
+}
+
+func (k PasswordKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Cycle, k.Close, k.Submit}
+}
+
+func (k PasswordKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Cycle, k.Close, k.Submit},
+		{k.TogglePasswordVisibility, k.GeneratePassword},
+	}
+}
+
+var PasswordKeys = PasswordKeyMap{
+	KeyMap: BaseKeys,
 	TogglePasswordVisibility: key.NewBinding(
 		key.WithKeys("ctrl+p"),
 		key.WithHelp("ctrl+p", "toggle password visibility"),
+	),
+	GeneratePassword: key.NewBinding(
+		key.WithKeys("ctrl+g"),
+		key.WithHelp("ctrl+g", "generate random password"),
 	),
 }
 

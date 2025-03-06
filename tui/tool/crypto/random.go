@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"math/big"
+	"strings"
 )
 
 const (
@@ -23,6 +24,26 @@ func GenerateSecretKey() (string, error) {
 
 func GenerateSalt() (string, error) {
 	return generateRandomString(saltEntropy, 32)
+}
+
+func GenerateRandomPassword(length int) (string, error) {
+	// Before picking random index from the entropy, we would
+	// also want to shuffle the entropy's indexing.
+	// If usually we have the entropy of "abc...ABC...123...#$%",
+	// we want random arrangement "a&3BZs#0..." as the entropy.
+
+	shuffledEntropy := strings.Split(completeEntropy, "")
+	N := len(shuffledEntropy)
+	for i := 0; i < N; i++ {
+		randIdx, err := rand.Int(rand.Reader, big.NewInt(512))
+		if err != nil {
+			return "", err
+		}
+		j := randIdx.Int64() % int64(N)
+		shuffledEntropy[i], shuffledEntropy[j] = shuffledEntropy[j], shuffledEntropy[i]
+	}
+
+	return generateRandomString(strings.Join(shuffledEntropy, ""), length)
 }
 
 func generateRandomString(entropy string, length int) (string, error) {
