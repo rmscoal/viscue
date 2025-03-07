@@ -166,7 +166,7 @@ func (m Model) renderRows() string {
 			columnWidth := m.columns[columnIndex].Width
 			if columnWidth <= 0 {
 				continue
-			} else if len(cell) > columnWidth {
+			} else if len(cell)-1 >= columnWidth {
 				cell = cell[:columnWidth-3] + "…"
 			}
 			cellStyle := m.cellStyle(rowIndex, columnWidth)
@@ -178,7 +178,7 @@ func (m Model) renderRows() string {
 	return lipgloss.JoinVertical(lipgloss.Left, rows...)
 }
 
-// SetRows replace the rows field and reset the cursor to 0
+// SetRows replace the row field and reset the cursor to 0
 func (m *Model) SetRows(rows []Row) {
 	m.rows = rows
 	m.vp.SetContent(m.renderRows())
@@ -207,7 +207,7 @@ func (m Model) Columns() []Column {
 	return m.columns
 }
 
-// SetColumnsWidth sets each of the columns width based on given widths sequentially
+// SetColumnsWidth sets each of the column width based on given widths sequentially
 func (m *Model) SetColumnsWidth(widths ...int) {
 	length := min(len(widths), len(m.columns))
 	for i := 0; i < length; i++ {
