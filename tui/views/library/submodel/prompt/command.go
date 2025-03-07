@@ -12,6 +12,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func (m Model) SendSetKeysMsg() tea.Msg {
+	if m.isPasswordPrompt() {
+		return message.SetHelpKeysMsg{
+			Keys: PasswordKeys,
+		}
+	} else {
+		return message.SetHelpKeysMsg{
+			Keys: BaseKeys,
+		}
+	}
+}
+
 func (m Model) Close() tea.Msg {
 	switch m.payload.(type) {
 	case entity.Category:

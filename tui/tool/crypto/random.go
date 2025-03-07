@@ -25,6 +25,10 @@ func GenerateSalt() (string, error) {
 	return generateRandomString(saltEntropy, 32)
 }
 
+func GenerateRandomPassword(length int) (string, error) {
+	return generateRandomString(completeEntropy, length)
+}
+
 func generateRandomString(entropy string, length int) (string, error) {
 	var b bytes.Buffer
 

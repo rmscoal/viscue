@@ -42,6 +42,7 @@ func New(db *sqlx.DB) tea.Model {
 		help:            help.New(),
 		focusedSubmodel: 1,
 	}
+	m.help.ShowAll = true
 
 	return m
 }
@@ -123,7 +124,7 @@ func (m Model) View() string {
 		case 1:
 			helpView = style.HelpContainer(help.New().View(shelf.Keys))
 		case 2:
-			helpView = style.HelpContainer(help.New().View(prompt.Keys))
+			helpView = style.HelpContainer(help.New().View(prompt.BaseKeys))
 		}
 	}
 	return lipgloss.JoinVertical(

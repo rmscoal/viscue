@@ -166,7 +166,7 @@ func New(db *sqlx.DB, payload any, opts ...Option) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.Batch(m.SendSetKeysMsg, textinput.Blink)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -178,9 +178,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case m.isDeletion:
 			switch {
-			case key.Matches(msg, Keys.Close):
+			case key.Matches(msg, BaseKeys.Close):
 				return m, m.Close
-			case key.Matches(msg, Keys.Submit):
+			case key.Matches(msg, BaseKeys.Submit):
 				return m, m.Delete
 			}
 		default:
@@ -198,20 +198,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					fallthrough
 				case key.Matches(msg, DropdownKeys.Cancel):
 					m.list.Blur()
-					return m, func() tea.Msg {
-						return message.SetHelpKeysMsg{
-							Keys: Keys,
-						}
-					}
+					return m, m.SendSetKeysMsg
 				}
 			default:
 				switch {
-				case key.Matches(msg, Keys.Cycle):
+				case key.Matches(msg, BaseKeys.Cycle):
 					m.cycleFocus(msg)
 					return m, nil
-				case key.Matches(msg, Keys.Close):
+				case key.Matches(msg, BaseKeys.Close):
 					return m, m.Close
-				case key.Matches(msg, Keys.Submit):
+				case key.Matches(msg, BaseKeys.Submit):
 					if m.isButtonFocused() {
 						return m, m.Submit
 					}
@@ -223,8 +219,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 						}
 					}
-				case key.Matches(msg, Keys.TogglePasswordVisibility):
-					m.togglePasswordVisibility()
+				case key.Matches(msg, PasswordKeys.TogglePasswordVisibility):
+					if m.isPasswordPrompt() {
+						m.togglePasswordVisibility()
+					}
+					return m, nil
+				case key.Matches(msg, PasswordKeys.GeneratePassword):
+					if m.isPasswordPrompt() {
+						m.generateRandomPassword()
+					}
 					return m, nil
 				default:
 					m.err = nil // Clear existing error on type
@@ -234,18 +237,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateTextInputs(msg)
 	case cursor.BlinkMsg:
 		return m.updateTextInputs(msg)
-	case message.OpenPromptMsg[entity.Password]:
-		return m, func() tea.Msg {
-			return message.SetHelpKeysMsg{
-				Keys: Keys,
-			}
-		}
-	case message.OpenPromptMsg[entity.Category]:
-		return m, func() tea.Msg {
-			return message.SetHelpKeysMsg{
-				Keys: Keys,
-			}
-		}
+	case message.OpenPromptMsg[entity.Password], message.OpenPromptMsg[entity.Category]:
+		return m, m.SendSetKeysMsg
 	}
 	return m, nil
 }
