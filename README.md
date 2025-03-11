@@ -31,6 +31,19 @@ https://github.com/user-attachments/assets/337a2af2-169c-4759-918e-b92b6fa2e959
 - 🔍 Search and filter capabilities
 - and more coming !!!
 
+## Security
+Viscue stores your password locally inside an embedded SQLite database. 
+Passwords are never stored as is, instead they are encrypted using your private key.
+Furthermore, your private key is encrypted and stored locally within your system's keychain.
+
+Technically, Viscue took inspiration from both 1Password's [white paper](https://1passwordstatic.com/files/security/1password-white-paper.pdf) and BitWarden's [white paper](https://www.avangate.it/wp-content/uploads/2024/04/help-bitwarden-security-white-paper.pdf).
+The blend resulted in the following simplified algorithm:
+
+![Simplified algorithm to generate AUC](./docs/generate_auc.png)
+![Simplified algorithm to generate asym keys](./docs/generate_asym_keys.png)
+
+Feel free to explore the code to enhance and fortify Viscue's security.
+
 ## Installation
 Pick your installation of choice.
 
