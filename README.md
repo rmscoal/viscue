@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/337a2af2-169c-4759-918e-b92b6fa2e959
 
 ## Features
 - 🔒 Secure password storage with strong encryption
-- 🔑 Password generation with customizable options
+- 🔑 Strong password generation
 - 📋 Easy copy-paste functionality
 - 🔍 Search and filter capabilities
 - and more coming !!!
