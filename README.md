@@ -18,11 +18,14 @@
 <p align="left"><strong>And you work within the terminal?</strong> Yup 🤓!</p>
 <p align="center"><strong>Viscue</strong> is your answer!</p>
 
-With Viscue you can store, retrieve, and generate strong passwords while keeping them encrypted and safe all without leaving your terminal. **You also want a UI?** We got you covered! Viscue provides both CLI and TUI for you to interact with your private data making it easy to use and navigate.
+With Viscue you can store,
+retrieve and generate strong passwords while keeping them encrypted and safe all without leaving your terminal.
+Viscue is a TUI app making it easy to use and navigate.
+
+[Demo](./docs/demo.mov)
 
 ## Features
 - 🔒 Secure password storage with strong encryption
-- 🎯 Command-line interface for quick access
 - 🔑 Password generation with customizable options
 - 📋 Easy copy-paste functionality
 - 🔍 Search and filter capabilities
