@@ -1,0 +1,41 @@
+builds:
+  - id: viscue
+    main: ./main
+    binary: viscue
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarm: "7"
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^chore:'
+      - '^docs:'
+
+brews:
+  - repository:
+      owner: rmscoal
+      name: homebrew-tap
+    commit_author:
+      name: rmscoal
+      email: rmscoaldev@gmail.com
+    name: viscue
+    homepage: "https://github.com/rmscoal/viscue"
+    description: "Your terminal password manager"

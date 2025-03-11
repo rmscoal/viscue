@@ -65,6 +65,10 @@ You people are very welcome to contribute. Remember to start the project.
 4. Push to the Branch (`git push origin feat/amazing_feature`)
 5. Open a Pull Request
 
+### Upcoming Plans
+- [ ] Have a view to configure password generation
+- [ ] Have a view to configure account
+- [ ] Create a Viscue server allowing password sharing securely
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
