@@ -1,27 +1,28 @@
+version: 2
+before:
+  hooks:
+    - go mod tidy
+
 builds:
+  # Only allow Darwin releases for now...
   - id: viscue
-    main: ./main
+    main: .
     binary: viscue
     goos:
-      - linux
-      - windows
       - darwin
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
-      - goos: windows
-        goarm: "7"
+    env:
+      - CGO_ENABLED=1
 
 archives:
   - id: default
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
 checksum:
   name_template: "checksums.txt"
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+
 changelog:
   sort: asc
   filters:
