@@ -22,7 +22,7 @@ With Viscue you can store,
 retrieve and generate strong passwords while keeping them encrypted and safe all without leaving your terminal.
 Viscue is a TUI app making it easy to use and navigate.
 
-[Demo](./docs/demo.mov)
+https://github.com/user-attachments/assets/337a2af2-169c-4759-918e-b92b6fa2e959
 
 ## Features
 - 🔒 Secure password storage with strong encryption
