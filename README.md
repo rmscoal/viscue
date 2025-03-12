@@ -49,11 +49,11 @@ Pick your installation of choice.
 
 - Mac
     ```sh
-    brew install viscue
+    brew install rmscoal/tap/viscue
     ```
 - Go (version 1.21+ required)
     ```sh
-    go install github.com/rmscoal/viscue/cmd/viscue/main.go@latest
+    go install github.com/rmscoal/viscue@latest
     ```
 
 ## Contributing
