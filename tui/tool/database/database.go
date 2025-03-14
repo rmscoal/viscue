@@ -6,6 +6,8 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -45,7 +47,17 @@ func New() (*sqlx.DB, error) {
 	sql.Register("sqlite3_with_sqlHook",
 		sqlhooks.Wrap(&sqlite3.SQLiteDriver{}, &sqlHook{}))
 
-	db, err := sqlx.Connect("sqlite3_with_sqlHook", "sqlite.db")
+	dbpath := "sqlite.db"
+	_, ok := os.LookupEnv("DEBUG")
+	if !ok {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch home directory")
+		}
+		dbpath = filepath.Join(homedir, ".viscue.sqlite")
+	}
+
+	db, err := sqlx.Connect("sqlite3_with_sqlHook", dbpath)
 	if err != nil {
 		err = fmt.Errorf("failed connecting to sqlite3: %s", err.Error())
 	}
