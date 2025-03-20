@@ -2,11 +2,11 @@ package tui
 
 import (
 	"os"
-	"time"
 
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
 	"viscue/tui/tool/database"
+	"viscue/tui/tool/debugger"
 	"viscue/tui/views/library"
 	"viscue/tui/views/login"
 	"viscue/tui/views/warning"
@@ -106,23 +106,12 @@ func Run() int {
 	}
 	defer db.Close()
 
-	filename := "error.log"
-	log.SetLevel(log.ErrorLevel)
-
-	_, ok := os.LookupEnv("DEBUG")
-	if ok {
-		log.SetLevel(log.DebugLevel)
-		filename = "debug.log"
-	}
-
-	file, err := tea.LogToFileWith(filename, "", log.Default())
+	file, err := debugger.New()
 	if err != nil {
-		log.Error("failed to create log file", "err", err)
+		log.Error("failed initializing debugger", "err", err)
 		return 1
 	}
 	defer file.Close()
-	log.Info("viscue application started",
-		"time", time.Now().Format(time.RFC3339))
 
 	_, err = tea.NewProgram(NewApp(db)).Run()
 	if err != nil {
