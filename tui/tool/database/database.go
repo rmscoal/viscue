@@ -48,7 +48,7 @@ func New() (*sqlx.DB, error) {
 		sqlhooks.Wrap(&sqlite3.SQLiteDriver{}, &sqlHook{}))
 
 	dbpath := "sqlite.db"
-	_, ok := os.LookupEnv("DB_DEV")
+	_, ok := os.LookupEnv("local_db")
 	if !ok {
 		homedir, err := os.UserHomeDir()
 		if err != nil {

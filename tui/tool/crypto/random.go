@@ -1,9 +1,9 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/rand"
 	"math/big"
+	"strings"
 )
 
 const (
@@ -30,10 +30,12 @@ func GenerateRandomPassword(length int) (string, error) {
 }
 
 func generateRandomString(entropy string, length int) (string, error) {
-	var b bytes.Buffer
+	var b strings.Builder
+	b.Grow(length)
 
+	entropyLen := int64(len(entropy))
 	for i := 0; i < length; i++ {
-		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(entropy))))
+		index, err := rand.Int(rand.Reader, big.NewInt(entropyLen))
 		if err != nil {
 			return "", err
 		}

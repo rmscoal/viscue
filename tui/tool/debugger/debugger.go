@@ -14,7 +14,7 @@ func New() (file *os.File, err error) {
 	filename := "debug.log"
 	log.SetLevel(log.DebugLevel)
 
-	_, ok := os.LookupEnv("LOG_DEV")
+	_, ok := os.LookupEnv("debug")
 	if !ok {
 		filename = ".viscue.error.log"
 		log.SetLevel(log.ErrorLevel)
