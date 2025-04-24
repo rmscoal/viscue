@@ -88,9 +88,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				},
 			),
 		)
-		return m, func() tea.Msg {
-			return message.ClosePromptMsg[entity.Category]{}
-		}
+		return m, tea.Batch(
+			func() tea.Msg {
+				return message.ClosePromptMsg[entity.Category]{}
+			},
+			m.CategorySelectedMsg,
+		)
 	case prompt.DataSubmittedMsg[entity.Category]:
 		m.append(msg.Data)
 		return m, tea.Sequence(
@@ -128,10 +131,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(searchCmd, m.CategorySelectedMsg)
 		} else {
 			switch keypress := msg.String(); keypress {
-			case "k", "up", "j", "down":
+			case "k", "up", "shift+tab", "j", "down", "tab":
 				var listCmd tea.Cmd
 				m.list, listCmd = m.list.Update(msg)
-				return m, tea.Sequence(listCmd, m.CategorySelectedMsg)
+				return m, tea.Sequence(
+					listCmd,
+					m.CategorySelectedMsg,
+					func() tea.Msg {
+						return message.ClearFilter{}
+					},
+				)
 			case "ctrl+l":
 				m.search.Blur()
 				m.list.Blur()
@@ -148,7 +157,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "c":
 				m.search.Blur()
 				m.search.SetValue("")
-				return m, nil
+				m.filter()
+				return m, m.CategorySelectedMsg
 			}
 		}
 	}

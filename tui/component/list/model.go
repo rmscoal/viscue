@@ -6,8 +6,6 @@
 package list
 
 import (
-	"strings"
-
 	"viscue/tui/style"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -115,10 +113,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "j", "down":
+		case "j", "down", "tab":
 			m.Down()
 			return m, nil
-		case "k", "up":
+		case "k", "up", "shift+tab":
 			m.Up()
 			return m, nil
 		}
@@ -155,7 +153,7 @@ func (m Model) renderItems() string {
 		return "No categories\n"
 	}
 
-	var content strings.Builder
+	var content string
 	for idx, item := range m.items {
 		str := item.String()
 		width := lipgloss.Width(str)
@@ -173,10 +171,9 @@ func (m Model) renderItems() string {
 				fn = m.Styles.BlurredSelectedItem.Render
 			}
 		}
-		content.WriteString(fn(str))
-		content.WriteRune('\n')
+		content += fn(str) + "\n"
 	}
-	return content.String()
+	return content
 }
 
 func (m *Model) SetIndex(idx int) {

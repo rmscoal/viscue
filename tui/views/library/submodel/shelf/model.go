@@ -112,6 +112,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case message.ShouldReloadMsg:
 		return m, m.LoadItems
+	case message.ClearFilter:
+		m.search.Blur()
+		m.search.SetValue("")
+		return m, nil
 	case cursor.BlinkMsg:
 		var cmd tea.Cmd
 		m.search, cmd = m.search.Update(msg)
