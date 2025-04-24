@@ -26,7 +26,7 @@ type Model struct {
 
 	// State
 	passwords          []entity.Password
-	selectedCategoryId int64
+	selectedCategoryId *int64
 
 	// Style
 	paneBorder lipgloss.Style
@@ -37,6 +37,7 @@ func New(db *sqlx.DB) tea.Model {
 	search.Prompt = "🔍: "
 	search.Placeholder = "Search password..."
 	search.Cursor.SetMode(cursor.CursorStatic)
+	defaultSelectedCategoryId := int64(0)
 
 	m := Model{
 		db:     db,
@@ -53,7 +54,8 @@ func New(db *sqlx.DB) tea.Model {
 				}),
 			table.WithFocused(true),
 		),
-		paneBorder: style.PaneBorderStyle,
+		selectedCategoryId: &defaultSelectedCategoryId,
+		paneBorder:         style.PaneBorderStyle,
 	}
 
 	m.calculateDimension()
@@ -95,7 +97,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return message.ClosePromptMsg[entity.Password]{}
 		}
 	case message.CategorySelectedMsg:
-		m.selectedCategoryId = int64(msg)
+		m.selectedCategoryId = msg
 		m.sync()
 		return m, nil
 	case message.SwitchFocusMsg:
@@ -128,14 +130,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.search.SetValue("")
 				m.search.Blur()
+				m.filter()
 				return m, nil
 			case "enter":
 				m.search.Blur()
 				return m, nil
 			}
-			defer m.filter()
 			var searchCmd tea.Cmd
 			m.search, searchCmd = m.search.Update(msg)
+			m.filter()
 			return m, searchCmd
 		} else {
 			switch msg.String() {

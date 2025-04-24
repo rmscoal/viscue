@@ -8,12 +8,24 @@ import (
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
 
+	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
 	"github.com/samber/lo"
 )
 
 func (m *Model) filter() {
 	value := m.search.Value()
+	log.Debug("sidebar.(*Model).filter:", "m.search.Value()", value)
+	if value == "" {
+		m.list.SetItems(
+			lo.Map(m.categories,
+				func(item entity.Category, index int) list.Item {
+					return item
+				},
+			),
+		)
+		return
+	}
 
 	ranks := fuzzy.Find(value,
 		lo.Map(m.categories,
@@ -34,6 +46,7 @@ func (m *Model) filter() {
 			)
 		},
 	)
+	log.Debug("sidebar.(*Model).filter:", "items", items)
 	m.list.SetItems(items)
 }
 

@@ -14,8 +14,31 @@ import (
 
 func (m *Model) filter() {
 	value := m.search.Value()
+	if value == "" {
+		m.sync()
+		return
+	}
+
+	var passwordsByCategory []entity.Password
+	if m.selectedCategoryId != nil {
+		switch *m.selectedCategoryId {
+		case 0:
+			passwordsByCategory = m.passwords
+		case -1:
+			passwordsByCategory = lo.Filter(m.passwords,
+				func(password entity.Password, index int) bool {
+					return !password.CategoryId.Valid
+				})
+		default:
+			passwordsByCategory = lo.Filter(m.passwords,
+				func(password entity.Password, index int) bool {
+					return password.CategoryId.Int64 == *m.selectedCategoryId &&
+						password.CategoryId.Valid
+				})
+		}
+	}
 	ranks := fuzzy.Find(value,
-		lo.Map(m.passwords,
+		lo.Map(passwordsByCategory,
 			func(password entity.Password, _ int) string {
 				return password.Name
 			},
@@ -25,7 +48,7 @@ func (m *Model) filter() {
 	indexes := lo.Map(ranks, func(match fuzzy.Match, _ int) int {
 		return match.Index
 	})
-	rows := lo.FilterMap(m.passwords,
+	rows := lo.FilterMap(passwordsByCategory,
 		func(password entity.Password, index int) (table.Row, bool) {
 			return password.ToTableRow(), lo.Contains(
 				indexes,
@@ -38,24 +61,26 @@ func (m *Model) filter() {
 
 func (m *Model) sync() {
 	var rows []table.Row
-	switch m.selectedCategoryId {
-	case 0:
-		rows = lo.Map(m.passwords,
-			func(password entity.Password, index int) table.Row {
-				return password.ToTableRow()
-			})
-	case -1:
-		rows = lo.FilterMap(m.passwords,
-			func(password entity.Password, index int) (table.Row, bool) {
-				return password.ToTableRow(), !password.CategoryId.Valid
-			})
-	default:
-		rows = lo.FilterMap(m.passwords,
-			func(password entity.Password, index int) (table.Row, bool) {
-				return password.ToTableRow(),
-					password.CategoryId.Int64 == m.selectedCategoryId &&
-						password.CategoryId.Valid
-			})
+	if m.selectedCategoryId != nil {
+		switch *m.selectedCategoryId {
+		case 0:
+			rows = lo.Map(m.passwords,
+				func(password entity.Password, index int) table.Row {
+					return password.ToTableRow()
+				})
+		case -1:
+			rows = lo.FilterMap(m.passwords,
+				func(password entity.Password, index int) (table.Row, bool) {
+					return password.ToTableRow(), !password.CategoryId.Valid
+				})
+		default:
+			rows = lo.FilterMap(m.passwords,
+				func(password entity.Password, index int) (table.Row, bool) {
+					return password.ToTableRow(),
+						password.CategoryId.Int64 == *m.selectedCategoryId &&
+							password.CategoryId.Valid
+				})
+		}
 	}
 	m.table.SetRows(rows)
 }

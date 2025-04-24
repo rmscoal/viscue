@@ -5,6 +5,7 @@ import (
 	"viscue/tui/views/library/message"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 )
 
 type DataLoadedMsg struct {
@@ -70,8 +71,12 @@ func (m Model) EditCategoryPromptMsg() tea.Cmd {
 }
 
 func (m Model) CategorySelectedMsg() tea.Msg {
-	category := m.list.SelectedItem().(entity.Category)
-	return message.CategorySelectedMsg(category.Id)
+	category, ok := m.list.SelectedItem().(entity.Category)
+	if !ok {
+		return message.CategorySelectedMsg(nil)
+	}
+	log.Debug("sidebar.(Model).CategorySelectedMsg:", "category", category)
+	return message.CategorySelectedMsg(&category.Id)
 }
 
 func (m Model) DeleteCategoryPromptMsg() tea.Cmd {

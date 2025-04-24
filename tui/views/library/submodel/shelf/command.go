@@ -62,9 +62,14 @@ func (m Model) EditPasswordPromptMsg() tea.Cmd {
 }
 
 func (m Model) AddPasswordPromptMsg() tea.Cmd {
-	selectedCategoryId := m.selectedCategoryId
-	if selectedCategoryId <= 0 {
+	var selectedCategoryId int64
+	if m.selectedCategoryId == nil {
 		selectedCategoryId = 0
+	} else {
+		selectedCategoryId = *m.selectedCategoryId
+		if selectedCategoryId <= 0 {
+			selectedCategoryId = 0
+		}
 	}
 	return tea.Sequence(
 		func() tea.Msg {
