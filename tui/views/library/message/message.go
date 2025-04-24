@@ -36,3 +36,5 @@ type CategorySelectedMsg *int64
 type SetHelpKeysMsg struct {
 	Keys help.KeyMap
 }
+
+type ClearFilter struct{}
