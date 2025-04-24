@@ -27,7 +27,11 @@ type ClosePromptMsg[T interface {
 	entity.Category | entity.Password
 }] struct{}
 
-type CategorySelectedMsg int64
+// CategorySelectedMsg passes the category ID of
+// the currently selected (first) in the list. It
+// could be nil because during filter, it is possible
+// that no category is selected at all.
+type CategorySelectedMsg *int64
 
 type SetHelpKeysMsg struct {
 	Keys help.KeyMap

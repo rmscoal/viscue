@@ -119,11 +119,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.search.SetValue("")
 				m.search.Blur()
+				m.filter()
 				return m, m.CategorySelectedMsg
 			}
-			defer m.filter()
 			var searchCmd tea.Cmd
 			m.search, searchCmd = m.search.Update(msg)
+			m.filter()
 			return m, tea.Batch(searchCmd, m.CategorySelectedMsg)
 		} else {
 			switch keypress := msg.String(); keypress {

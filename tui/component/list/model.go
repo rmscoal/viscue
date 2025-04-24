@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 )
 
 var (
@@ -138,6 +139,7 @@ type Item interface {
 }
 
 func (m *Model) SetItems(items []Item) {
+	log.Debug("list.(*Model).SetItems:", "items", items)
 	m.items = items
 	m.vp.SetContent(m.renderItems())
 	m.currIdx = 0
@@ -149,6 +151,10 @@ func (m Model) Items() []Item {
 }
 
 func (m Model) renderItems() string {
+	if len(m.items) == 0 {
+		return "No categories\n"
+	}
+
 	var content strings.Builder
 	for idx, item := range m.items {
 		str := item.String()
