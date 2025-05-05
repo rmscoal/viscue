@@ -4,7 +4,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"runtime/pprof"
 
 	"viscue/tui/style"
 	"viscue/tui/tool/cache"
@@ -120,28 +119,12 @@ func Run() int {
 		go func() {
 			http.ListenAndServe("localhost:6060", nil)
 		}()
-
-		cpuf, err := os.Create("cpu.prof")
-		if err != nil {
-			log.Error("failed to make cpu.prof file")
-		}
-		_ = pprof.StartCPUProfile(cpuf)
-		defer pprof.StopCPUProfile()
 	}
 
 	_, err = tea.NewProgram(NewApp(db)).Run()
 	if err != nil {
 		log.Error("unable to start application", "err", err)
 		return 1
-	}
-
-	if _, ok := os.LookupEnv("pprof"); ok {
-		heapf, err := os.Create("heap.prof")
-		if err != nil {
-			log.Error("failed to make heap.prof file")
-		}
-		_ = pprof.WriteHeapProfile(heapf)
-		_ = heapf.Close()
 	}
 
 	return 0
